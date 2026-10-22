@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name:       WP Map Embed
+ * Plugin Name:       WP Maps Embed
  * Plugin URI:        https://github.com/Andrusi4ka/WP-Maps-Build
  * Description:       Google Maps on a page without copying iframe code: create a map from an address or Google's embed code, choose its height and the "click to activate" cover, and insert it with a shortcode or the WPBakery element.
  * Version:           1.0.0
@@ -57,7 +57,7 @@ function wp_map_embed_register_post_type() {
 			'labels'          => array(
 				'name'               => __( 'Maps', 'wp-map-embed' ),
 				'singular_name'      => __( 'Map', 'wp-map-embed' ),
-				'menu_name'          => __( 'WP Maps Build', 'wp-map-embed' ),
+				'menu_name'          => __( 'WP Maps Embed', 'wp-map-embed' ),
 				'add_new'            => __( 'Add map', 'wp-map-embed' ),
 				'add_new_item'       => __( 'Add new map', 'wp-map-embed' ),
 				'edit_item'          => __( 'Edit map', 'wp-map-embed' ),

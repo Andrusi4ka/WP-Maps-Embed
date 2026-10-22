@@ -452,7 +452,7 @@ class WP_Map_Embed_Admin {
 			return;
 		}
 		self::render_shortcode_input( $post->ID );
-		echo '<p class="description">' . esc_html__( 'Paste it into any page, or use the “WP Maps Build” element in WPBakery.', 'wp-map-embed' ) . '</p>';
+		echo '<p class="description">' . esc_html__( 'Paste it into any page, or use the “WP Maps Embed” element in WPBakery.', 'wp-map-embed' ) . '</p>';
 	}
 
 	private static function render_shortcode_input( $post_id ) {

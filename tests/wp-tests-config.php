@@ -25,7 +25,7 @@ $table_prefix = 'wptests_'; // phpcs:ignore WordPress.WP.GlobalVariablesOverride
 
 define( 'WP_TESTS_DOMAIN', 'example.org' );
 define( 'WP_TESTS_EMAIL', 'admin@example.org' );
-define( 'WP_TESTS_TITLE', 'WP Map Embed Tests' );
+define( 'WP_TESTS_TITLE', 'WP Maps Embed Tests' );
 define( 'WP_PHP_BINARY', PHP_BINARY );
 define( 'WPLANG', '' );
 define( 'WP_DEBUG', true );

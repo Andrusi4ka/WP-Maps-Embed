@@ -1,6 +1,6 @@
-# WP Map Embed
+# WP Maps Embed
 
-Google Maps on a WordPress page without copying iframe code: create a map from an address or Google's embed code, choose its size and the "click to activate" cover, and insert it with a shortcode or the WPBakery element. In the admin menu it is **WP Maps Build**.
+Google Maps on a WordPress page without copying iframe code: create a map from an address or Google's embed code, choose its size and the "click to activate" cover, and insert it with a shortcode or the WPBakery element.
 
 - **Maps kept in one place:** each map has its own settings and is placed with a shortcode or the WPBakery element; change a map once, every page with it follows.
 - **Source:** an address (no API key needed) or Google's *Share > Embed a map* code, the whole iframe or just its link. Only Google's embedded maps are shown in the frame.
@@ -16,7 +16,7 @@ Requires WordPress 6.0+ and PHP 7.4+.
 
 Download `wp-map-embed.zip` from the [latest release](https://github.com/Andrusi4ka/WP-Maps-Build/releases/latest) and upload it under **Plugins > Add New > Upload Plugin**. Newer releases then show up as regular plugin updates.
 
-Use it with `[wp_map_embed id="123"]` (the id is shown on the map's edit screen) or the **WP Maps Build** element in WPBakery.
+Use it with `[wp_map_embed id="123"]` (the id is shown on the map's edit screen) or the **WP Maps Embed** element in WPBakery.
 
 ## Releasing a new version
 

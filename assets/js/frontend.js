@@ -1,5 +1,5 @@
 /**
- * WP Map Embed: a click on the cover makes the map usable (in colour,
+ * WP Maps Embed: a click on the cover makes the map usable (in colour,
  * dragged and zoomed), and loads a deferred map's frame first.
  */
 ( function () {

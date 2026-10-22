@@ -25,7 +25,7 @@ class Test_Admin extends WP_Map_Embed_TestCase {
 		$this->assertNotNull( $type );
 		$this->assertFalse( $type->public );
 		$this->assertTrue( $type->show_ui );
-		$this->assertSame( 'WP Maps Build', $type->labels->menu_name );
+		$this->assertSame( 'WP Maps Embed', $type->labels->menu_name );
 		$this->assertStringEndsWith( 'assets/images/menu-icon.png', $type->menu_icon );
 	}
 
@@ -118,7 +118,7 @@ class Test_Admin extends WP_Map_Embed_TestCase {
 		$this->map( array(), array( 'post_title' => 'Office' ) );
 		$element = WP_Map_Embed_WPBakery::settings();
 
-		$this->assertSame( 'WP Maps Build', $element['name'] );
+		$this->assertSame( 'WP Maps Embed', $element['name'] );
 		$this->assertSame( WP_Map_Embed_Render::SHORTCODE, $element['base'] );
 		$this->assertStringEndsWith( 'assets/images/wpbakery-icon.png', $element['icon'] );
 		$this->assertContains( 'Office', array_map( 'strval', array_map( function ( $label ) {

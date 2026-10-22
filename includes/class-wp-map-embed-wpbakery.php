@@ -38,14 +38,14 @@ class WP_Map_Embed_WPBakery {
 	 */
 	public static function settings() {
 		return array(
-			'name'        => __( 'WP Maps Build', 'wp-map-embed' ),
+			'name'        => __( 'WP Maps Embed', 'wp-map-embed' ),
 			'base'        => WP_Map_Embed_Render::SHORTCODE,
 			// 64px, shown at WPBakery's 32px.
 			'icon'        => WP_MAP_EMBED_URL . 'assets/images/wpbakery-icon.png',
 			'category'    => self::category(),
 			// Last in the "Add element" list (WPBakery sorts by weight, default 0).
 			'weight'      => -100,
-			'description' => __( 'Google map created under WP Maps Build', 'wp-map-embed' ),
+			'description' => __( 'Google map created under WP Maps Embed', 'wp-map-embed' ),
 			'params'      => array(
 				array(
 					'type'        => 'dropdown',
@@ -56,7 +56,7 @@ class WP_Map_Embed_WPBakery {
 					'description' => sprintf(
 						/* translators: %s: link to the maps screen */
 						__( 'Create and edit maps under %s.', 'wp-map-embed' ),
-						'<a href="' . esc_url( admin_url( 'edit.php?post_type=' . WP_Map_Embed_Settings::POST_TYPE ) ) . '" target="_blank">' . esc_html__( 'WP Maps Build', 'wp-map-embed' ) . '</a>'
+						'<a href="' . esc_url( admin_url( 'edit.php?post_type=' . WP_Map_Embed_Settings::POST_TYPE ) ) . '" target="_blank">' . esc_html__( 'WP Maps Embed', 'wp-map-embed' ) . '</a>'
 					),
 				),
 			),

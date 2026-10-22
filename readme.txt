@@ -1,4 +1,4 @@
-=== WP Map Embed ===
+=== WP Maps Embed ===
 Contributors: andriiboiko
 Tags: google maps, map, embed, shortcode, wpbakery
 Requires at least: 6.0
@@ -12,7 +12,7 @@ Google Maps on a page without copying iframe code, with a "click to activate" co
 
 == Description ==
 
-* Maps are kept under WP Maps Build, each with its own settings, and placed with a shortcode or the "WP Maps Build" element in WPBakery: change a map once, every page with it follows.
+* Maps are kept under WP Maps Embed, each with its own settings, and placed with a shortcode or the "WP Maps Embed" element in WPBakery: change a map once, every page with it follows.
 * A map from an address (no API key needed) or from Google's "Share > Embed a map" code — the whole iframe or just its link.
 * Map or satellite view, and the language of the map's names and labels (the site's or another).
 * Size by height per device (desktop, tablet, mobile; in px or vh), by proportions per device (21:9 to 9:16), or filling the parent block: in a WPBakery row the map is as tall as the column beside it. Corner radius per device.
@@ -24,8 +24,8 @@ Google Maps on a page without copying iframe code, with a "click to activate" co
 
 1. Download `wp-map-embed.zip` from the latest release on https://github.com/Andrusi4ka/WP-Maps-Build/releases.
 2. In WordPress go to Plugins > Add New > Upload Plugin and upload the zip, then activate it.
-3. Go to WP Maps Build > Add map, type the address or paste Google's embed code, choose the settings and publish.
-4. Paste the shortcode shown in the map's "Shortcode" box into a page, or add the "WP Maps Build" element in WPBakery.
+3. Go to WP Maps Embed > Add map, type the address or paste Google's embed code, choose the settings and publish.
+4. Paste the shortcode shown in the map's "Shortcode" box into a page, or add the "WP Maps Embed" element in WPBakery.
 
 == Frequently Asked Questions ==
 
@@ -40,4 +40,4 @@ Deleting it under Plugins removes all maps with their settings. Deactivating or 
 == Changelog ==
 
 = 1.0.0 =
-* First release: maps under WP Maps Build, from an address or Google's embed code; map or satellite, language; height or proportions per device, or filling the parent block; corner radius per device; "click to activate" cover (black and white until clicked, icon, text, colours); loading the map only after a click, with a placeholder image; preview; shortcode and WPBakery element.
+* First release: maps under WP Maps Embed, from an address or Google's embed code; map or satellite, language; height or proportions per device, or filling the parent block; corner radius per device; "click to activate" cover (black and white until clicked, icon, text, colours); loading the map only after a click, with a placeholder image; preview; shortcode and WPBakery element.

@@ -1,5 +1,5 @@
 /**
- * WP Map Embed edit screen: the preview follows the settings, settings that
+ * WP Maps Embed edit screen: the preview follows the settings, settings that
  * do not apply are greyed out (keeping their values), the placeholder image
  * picker and the shortcode's copy.
  */
