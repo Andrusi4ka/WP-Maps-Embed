@@ -1,9 +1,9 @@
 <?php
 /**
  * Plugin Name:       WP Maps Embed
- * Plugin URI:        https://github.com/Andrusi4ka/WP-Maps-Build
+ * Plugin URI:        https://github.com/Andrusi4ka/WP-Maps-Embed
  * Description:       Google Maps on a page without copying iframe code: create a map from an address or Google's embed code, choose its height and the "click to activate" cover, and insert it with a shortcode or the WPBakery element.
- * Version:           1.0.0
+ * Version:           1.0.1
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            Andrii Boiko
@@ -12,7 +12,7 @@
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       wp-map-embed
  * Domain Path:       /languages
- * Update URI:        https://github.com/Andrusi4ka/WP-Maps-Build
+ * Update URI:        https://github.com/Andrusi4ka/WP-Maps-Embed
  *
  * @package WP_Map_Embed
  */
@@ -24,8 +24,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'WP_MAP_EMBED_VERSION', '1.0.0' );
-define( 'WP_MAP_EMBED_REPOSITORY', 'https://github.com/Andrusi4ka/WP-Maps-Build/' );
+define( 'WP_MAP_EMBED_VERSION', '1.0.1' );
+define( 'WP_MAP_EMBED_REPOSITORY', 'https://github.com/Andrusi4ka/WP-Maps-Embed/' );
 define( 'WP_MAP_EMBED_FILE', __FILE__ );
 define( 'WP_MAP_EMBED_DIR', plugin_dir_path( __FILE__ ) );
 define( 'WP_MAP_EMBED_URL', plugin_dir_url( __FILE__ ) );

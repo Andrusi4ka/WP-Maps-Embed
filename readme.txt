@@ -4,7 +4,7 @@ Tags: google maps, map, embed, shortcode, wpbakery
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.0.0
+Stable tag: 1.0.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -22,7 +22,7 @@ Google Maps on a page without copying iframe code, with a "click to activate" co
 
 == Installation ==
 
-1. Download `wp-map-embed.zip` from the latest release on https://github.com/Andrusi4ka/WP-Maps-Build/releases.
+1. Download `wp-map-embed.zip` from the latest release on https://github.com/Andrusi4ka/WP-Maps-Embed/releases.
 2. In WordPress go to Plugins > Add New > Upload Plugin and upload the zip, then activate it.
 3. Go to WP Maps Embed > Add map, type the address or paste Google's embed code, choose the settings and publish.
 4. Paste the shortcode shown in the map's "Shortcode" box into a page, or add the "WP Maps Embed" element in WPBakery.
@@ -38,6 +38,9 @@ The embed one: in Google Maps open the place, then Share > Embed a map > Copy HT
 Deleting it under Plugins removes all maps with their settings. Deactivating or updating it keeps them.
 
 == Changelog ==
+
+= 1.0.1 =
+* Renamed to WP Maps Embed: the plugin, its admin menu item and the WPBakery element. Updates now come from https://github.com/Andrusi4ka/WP-Maps-Embed (the repository's new name).
 
 = 1.0.0 =
 * First release: maps under WP Maps Embed, from an address or Google's embed code; map or satellite, language; height or proportions per device, or filling the parent block; corner radius per device; "click to activate" cover (black and white until clicked, icon, text, colours); loading the map only after a click, with a placeholder image; preview; shortcode and WPBakery element.

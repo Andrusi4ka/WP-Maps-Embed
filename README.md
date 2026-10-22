@@ -14,7 +14,7 @@ Requires WordPress 6.0+ and PHP 7.4+.
 
 ## Install
 
-Download `wp-map-embed.zip` from the [latest release](https://github.com/Andrusi4ka/WP-Maps-Build/releases/latest) and upload it under **Plugins > Add New > Upload Plugin**. Newer releases then show up as regular plugin updates.
+Download `wp-map-embed.zip` from the [latest release](https://github.com/Andrusi4ka/WP-Maps-Embed/releases/latest) and upload it under **Plugins > Add New > Upload Plugin**. Newer releases then show up as regular plugin updates.
 
 Use it with `[wp_map_embed id="123"]` (the id is shown on the map's edit screen) or the **WP Maps Embed** element in WPBakery.
 
