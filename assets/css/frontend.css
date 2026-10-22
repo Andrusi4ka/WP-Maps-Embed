@@ -1,0 +1,149 @@
+/* WP Map Embed: the map's frame and its "click to activate" cover. */
+
+.wp-map-embed {
+	position: relative;
+	overflow: hidden;
+	width: 100%;
+	height: var(--wme-height, 450px);
+	border-radius: var(--wme-radius, 0);
+	/* Google's land colour, then the placeholder image of a deferred map. */
+	background: #e5e3df var(--wme-placeholder, none) center / cover no-repeat;
+}
+
+/* Proportions: the width gives the height. */
+.wp-map-embed.wp-map-embed--ratio {
+	height: auto;
+	aspect-ratio: var(--wme-ratio, 16 / 9);
+}
+
+@media (max-width: 1024px) {
+	.wp-map-embed {
+		height: var(--wme-height-tablet, var(--wme-height, 450px));
+		border-radius: var(--wme-radius-tablet, var(--wme-radius, 0));
+	}
+
+	.wp-map-embed.wp-map-embed--ratio {
+		height: auto;
+		aspect-ratio: var(--wme-ratio-tablet, var(--wme-ratio, 16 / 9));
+	}
+}
+
+@media (max-width: 767px) {
+	.wp-map-embed {
+		height: var(--wme-height-mobile, var(--wme-height-tablet, var(--wme-height, 450px)));
+		border-radius: var(--wme-radius-mobile, var(--wme-radius-tablet, var(--wme-radius, 0)));
+	}
+
+	.wp-map-embed.wp-map-embed--ratio {
+		height: auto;
+		aspect-ratio: var(--wme-ratio-mobile, var(--wme-ratio-tablet, var(--wme-ratio, 16 / 9)));
+	}
+}
+
+/* Fill the parent block: frontend.js sets the height it measures (inline);
+   until then, and where there is too little room, the heights above. */
+.wp-map-embed--fill {
+	box-sizing: border-box;
+}
+
+.wp-map-embed__frame {
+	display: block;
+	width: 100%;
+	height: 100%;
+	border: 0;
+	transition: filter 0.4s;
+}
+
+/* A deferred map has no frame to show until the click. */
+.wp-map-embed__frame:not([src]) {
+	visibility: hidden;
+}
+
+.wp-map-embed--gray:not(.is-active) .wp-map-embed__frame {
+	filter: grayscale(100%);
+}
+
+.wp-map-embed__cover {
+	position: absolute;
+	z-index: 10;
+	inset: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	height: 100%;
+	margin: 0;
+	padding: 16px;
+	border: 0;
+	border-radius: 0;
+	background: var(--wme-cover, rgba(223, 218, 215, 0.24));
+	box-shadow: none;
+	color: var(--wme-icon-color, var(--wd-primary-color, #333));
+	font: inherit;
+	text-transform: none;
+	cursor: pointer;
+}
+
+/* Themes style buttons on hover and focus: the cover keeps its look. */
+.wp-map-embed__cover:hover,
+.wp-map-embed__cover:focus {
+	background: var(--wme-cover, rgba(223, 218, 215, 0.24));
+	color: var(--wme-icon-color, var(--wd-primary-color, #333));
+	box-shadow: none;
+}
+
+.wp-map-embed__cover:focus-visible {
+	outline: 2px solid currentColor;
+	outline-offset: -4px;
+}
+
+.wp-map-embed.is-active .wp-map-embed__cover {
+	display: none;
+}
+
+.wp-map-embed__icon {
+	overflow: visible;
+	width: var(--wme-icon, 70px);
+	height: var(--wme-icon, 70px);
+	fill: currentColor;
+	transition: transform 0.2s;
+	pointer-events: none;
+}
+
+/* Icon size per device: unset, as on the larger screen. */
+@media (max-width: 1024px) {
+	.wp-map-embed__icon {
+		width: var(--wme-icon-tablet, var(--wme-icon, 70px));
+		height: var(--wme-icon-tablet, var(--wme-icon, 70px));
+	}
+}
+
+@media (max-width: 767px) {
+	.wp-map-embed__icon {
+		width: var(--wme-icon-mobile, var(--wme-icon-tablet, var(--wme-icon, 70px)));
+		height: var(--wme-icon-mobile, var(--wme-icon-tablet, var(--wme-icon, 70px)));
+	}
+}
+
+.wp-map-embed__cover:hover .wp-map-embed__icon {
+	transform: scale(1.08);
+}
+
+.wp-map-embed__label {
+	padding: 6px 14px;
+	border-radius: 999px;
+	background: rgba(255, 255, 255, 0.9);
+	color: #242424;
+	font-size: 14px;
+	font-weight: 600;
+	line-height: 1.4;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.wp-map-embed__frame,
+	.wp-map-embed__icon {
+		transition: none;
+	}
+}

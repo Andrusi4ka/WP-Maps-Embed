@@ -1,0 +1,13 @@
+# OS and editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Build output and local test pages
+*.zip
+assets/_*.html
+
+# Test dependencies (composer install) and PHPUnit's cache
+/tests/vendor/
+.phpunit.result.cache

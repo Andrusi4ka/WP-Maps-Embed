@@ -1,0 +1,41 @@
+# Publishes a release with wp-map-embed.zip for every "vX.Y.Z" tag; sites with
+# the plugin then see the update (wp-map-embed.php: wp_map_embed_updates()). Only
+# once the tests (tests.yml) have passed for that tag: otherwise no release.
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  tests:
+    uses: ./.github/workflows/tests.yml
+
+  release:
+    needs: tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check that the tag matches the plugin version
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          header=$(grep -m1 -oP '^\s*\*\s*Version:\s*\K\S+' wp-map-embed.php)
+          stable=$(grep -m1 -oP '^Stable tag:\s*\K\S+' readme.txt)
+          if [ "$tag" != "$header" ] || [ "$tag" != "$stable" ]; then
+            echo "::error::Tag v$tag, wp-map-embed.php Version $header and readme.txt Stable tag $stable must match."
+            exit 1
+          fi
+
+      # git archive leaves out what .gitattributes marks export-ignore (dev files).
+      - name: Build wp-map-embed.zip
+        run: git archive --format=zip --prefix=wp-map-embed/ -o wp-map-embed.zip HEAD
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: wp-map-embed.zip
+          generate_release_notes: true

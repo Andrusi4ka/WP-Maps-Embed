@@ -1,0 +1,436 @@
+/* WP Map Embed edit screen: settings on the left, preview on the right. */
+
+.wp-map-embed-admin {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+	gap: 24px;
+	align-items: start;
+}
+
+@media (max-width: 1280px) {
+	.wp-map-embed-admin {
+		grid-template-columns: minmax(0, 1fr);
+	}
+}
+
+.wp-map-embed-admin__group {
+	margin: 0 0 16px;
+	padding: 4px 16px 12px;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+}
+
+.wp-map-embed-admin__group legend {
+	padding: 0 6px;
+	font-size: 14px;
+	font-weight: 600;
+}
+
+.wp-map-embed-admin__row {
+	display: grid;
+	grid-template-columns: 180px minmax(0, 1fr);
+	gap: 4px 12px;
+	align-items: start;
+	padding: 10px 0;
+	border-top: 1px solid #f0f0f1;
+	transition: opacity 0.2s;
+}
+
+.wp-map-embed-admin__row:first-of-type {
+	border-top: 0;
+}
+
+/* A checkbox row has no label of its own: the control takes the whole width. */
+.wp-map-embed-admin__row > .wp-map-embed-admin__control:first-child {
+	grid-column: 1 / -1;
+}
+
+.wp-map-embed-admin__label {
+	padding-top: 5px;
+	font-weight: 600;
+}
+
+/* Does not apply now: greyed out, the value kept. */
+.wp-map-embed-admin__row.is-off {
+	opacity: 0.4;
+	pointer-events: none;
+}
+
+.wp-map-embed-admin__control .regular-text {
+	width: 100%;
+	max-width: 25em;
+}
+
+.wp-map-embed-admin__control .description {
+	margin: 6px 0 0;
+}
+
+.wp-map-embed-admin__error {
+	margin: 6px 0 0;
+	color: #d63638;
+	font-weight: 600;
+}
+
+.wp-map-embed-admin__range,
+.wp-map-embed-admin__responsive {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+}
+
+.wp-map-embed-admin__range input[type="range"] {
+	flex: 1;
+	max-width: 220px;
+}
+
+.wp-map-embed-admin__range input[type="number"] {
+	width: 76px;
+}
+
+.wp-map-embed-admin__responsive .wp-map-embed-admin__device-input[hidden] {
+	display: none;
+}
+
+/* A per-device value (as in WP Swiper): on the left the label, its help icon
+   and the desktop / tablet / mobile icons; on the right the field. */
+.wp-map-embed-admin__row--responsive {
+	align-items: end;
+}
+
+/* As tall as the field beside it: the label lines up with the field, not the icons over it. */
+.wp-map-embed-admin__head {
+	display: flex;
+	gap: 6px;
+	align-items: center;
+	min-height: 40px;
+}
+
+.wp-map-embed-admin__head .wp-map-embed-admin__label {
+	padding-top: 0;
+}
+
+/* Over the field, at its right end. */
+.wp-map-embed-admin__devices {
+	display: flex;
+	gap: 2px;
+	justify-content: flex-end;
+	margin-bottom: 4px;
+}
+
+.wp-map-embed-admin__row--responsive .wp-map-embed-admin__responsive {
+	gap: 6px;
+}
+
+
+.wp-map-embed-admin__row--responsive .wp-map-embed-admin__device-input {
+	flex: 1 1 auto;
+	width: 100%;
+	min-width: 0;
+	max-width: none;
+}
+
+.wp-map-embed-admin__row--responsive .wp-map-embed-admin__responsive > select:not(.wp-map-embed-admin__device-input) {
+	flex: 0 0 auto;
+	min-width: 72px;
+}
+
+/* Help text behind an "i" icon: shown on hover and keyboard focus. */
+.wp-map-embed-admin__tip {
+	position: relative;
+	display: inline-flex;
+	flex: 0 0 auto;
+	color: #a7aaad;
+	cursor: help;
+}
+
+.wp-map-embed-admin__tip .dashicons {
+	width: 16px;
+	height: 16px;
+	font-size: 16px;
+}
+
+.wp-map-embed-admin__tip:hover,
+.wp-map-embed-admin__tip:focus-visible {
+	color: #2271b1;
+	outline: none;
+}
+
+.wp-map-embed-admin__tip::after {
+	content: attr(data-tip);
+	position: absolute;
+	top: calc(100% + 6px);
+	left: -8px;
+	z-index: 20;
+	width: max-content;
+	max-width: 240px;
+	padding: 8px 10px;
+	border-radius: 4px;
+	background: #1d2327;
+	color: #fff;
+	font-size: 12px;
+	font-weight: 400;
+	line-height: 1.45;
+	white-space: normal;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+	opacity: 0;
+	visibility: hidden;
+	transition: opacity 0.1s;
+	pointer-events: none;
+}
+
+.wp-map-embed-admin__tip:hover::after,
+.wp-map-embed-admin__tip:focus-visible::after {
+	opacity: 1;
+	visibility: visible;
+}
+
+.wp-map-embed-admin__device {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 22px;
+	height: 22px;
+	padding: 0;
+	border: 0;
+	border-radius: 3px;
+	background: none;
+	color: #a7aaad;
+	cursor: pointer;
+}
+
+.wp-map-embed-admin__device .dashicons {
+	width: 18px;
+	height: 18px;
+	font-size: 18px;
+}
+
+.wp-map-embed-admin__device:hover {
+	color: #50575e;
+}
+
+.wp-map-embed-admin__device.is-active {
+	color: #2271b1;
+}
+
+/* Tablet / mobile has a value of its own (not inherited). */
+.wp-map-embed-admin__device.has-value::after {
+	content: "";
+	position: absolute;
+	top: 3px;
+	right: 3px;
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: #00a32a;
+}
+
+.wp-map-embed-admin__device:focus-visible {
+	outline: 2px solid #2271b1;
+	outline-offset: 0;
+}
+
+.wp-map-embed-admin__unit {
+	color: #646970;
+}
+
+/* Buttons of which one is chosen. */
+.wp-map-embed-admin__segmented {
+	display: inline-flex;
+	flex-wrap: wrap;
+	border: 1px solid #8c8f94;
+	border-radius: 4px;
+	overflow: hidden;
+}
+
+.wp-map-embed-admin__segmented label {
+	position: relative;
+}
+
+.wp-map-embed-admin__segmented label + label {
+	border-left: 1px solid #c3c4c7;
+}
+
+.wp-map-embed-admin__segmented input {
+	position: absolute;
+	opacity: 0;
+}
+
+.wp-map-embed-admin__segmented span {
+	display: block;
+	padding: 5px 10px;
+	background: #fff;
+	cursor: pointer;
+}
+
+.wp-map-embed-admin__segmented input:checked + span {
+	background: #2271b1;
+	color: #fff;
+}
+
+.wp-map-embed-admin__segmented input:focus-visible + span {
+	box-shadow: inset 0 0 0 2px #72aee6;
+}
+
+.wp-map-embed-admin__icons {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+}
+
+.wp-map-embed-admin__icon input {
+	position: absolute;
+	opacity: 0;
+}
+
+.wp-map-embed-admin__icon span {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	align-items: center;
+	justify-content: flex-end;
+	min-width: 64px;
+	height: 64px;
+	padding: 6px 8px;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	background: #fff;
+	box-sizing: border-box;
+	cursor: pointer;
+}
+
+.wp-map-embed-admin__icon svg {
+	width: 26px;
+	height: 26px;
+	fill: #1d2327;
+}
+
+.wp-map-embed-admin__icon input:checked + span {
+	border-color: #2271b1;
+	box-shadow: 0 0 0 1px #2271b1;
+}
+
+.wp-map-embed-admin__icon input:focus-visible + span {
+	outline: 2px solid #2271b1;
+	outline-offset: 2px;
+}
+
+.wp-map-embed-admin__image {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	align-items: center;
+}
+
+.wp-map-embed-admin__thumb img {
+	display: block;
+	width: 96px;
+	height: 64px;
+	border-radius: 3px;
+	object-fit: cover;
+}
+
+/* In view while the settings scroll (below the admin bar). */
+.wp-map-embed-admin__preview {
+	position: sticky;
+	top: 46px;
+	padding: 12px 16px 16px;
+	border: 1px solid #dcdcde;
+	border-radius: 4px;
+	background: #f6f7f7;
+}
+
+@media (max-width: 1280px) {
+	.wp-map-embed-admin__preview {
+		position: static;
+	}
+}
+
+.wp-map-embed-admin__bar {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 10px;
+}
+
+.wp-map-embed-admin__actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	justify-content: flex-end;
+}
+
+/* The blue of the chosen buttons (WordPress's own primary blue is another). */
+.wp-map-embed-admin .button-primary.wp-map-embed-admin__update {
+	border-color: #2271b1;
+	background: #2271b1;
+	color: #fff;
+}
+
+.wp-map-embed-admin .button-primary.wp-map-embed-admin__update:hover,
+.wp-map-embed-admin .button-primary.wp-map-embed-admin__update:focus {
+	border-color: #135e96;
+	background: #135e96;
+	color: #fff;
+}
+
+/* Outline in the same blue. */
+.wp-map-embed-admin .button.wp-map-embed-admin__reset {
+	border-color: #2271b1;
+	background: #fff;
+	color: #2271b1;
+}
+
+.wp-map-embed-admin .button.wp-map-embed-admin__reset:hover,
+.wp-map-embed-admin .button.wp-map-embed-admin__reset:focus {
+	border-color: #135e96;
+	background: #f0f6fc;
+	color: #135e96;
+}
+
+/* Settings changed since the preview was drawn. */
+.wp-map-embed-admin__update.is-stale::after {
+	content: "";
+	display: inline-block;
+	width: 6px;
+	height: 6px;
+	margin: 0 0 1px 6px;
+	border-radius: 50%;
+	background: #fff;
+	vertical-align: middle;
+}
+
+.wp-map-embed-admin__empty {
+	margin: 0;
+	padding: 48px 16px;
+	border: 1px dashed #c3c4c7;
+	border-radius: 4px;
+	color: #646970;
+	text-align: center;
+}
+
+/* The preview shows the desktop size whatever the admin's width. */
+.wp-map-embed-admin__stage .wp-map-embed {
+	height: var(--wme-height, 450px);
+}
+
+.wp-map-embed-admin__stage .wp-map-embed.wp-map-embed--ratio {
+	height: auto;
+	aspect-ratio: var(--wme-ratio, 16 / 9);
+}
+
+.wp-map-embed-shortcode {
+	width: 100%;
+	font-family: Consolas, Monaco, monospace;
+}
+
+.column-wp_map_embed_shortcode .wp-map-embed-shortcode {
+	max-width: 260px;
+}
+
+.wp-map-embed-copied {
+	display: inline-block;
+	margin-top: 4px;
+	color: #008a20;
+}

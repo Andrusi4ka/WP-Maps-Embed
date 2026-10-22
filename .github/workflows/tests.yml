@@ -1,0 +1,85 @@
+# The PHP tests (tests/, PHPUnit with the WordPress test suite) and a
+# syntax check of every file: on every push to main and pull request, and
+# before a release (release.yml calls this workflow and waits for it).
+name: Tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_call:
+
+jobs:
+  lint:
+    name: Syntax
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # The oldest PHP the plugin supports ("Requires PHP").
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '7.4'
+          coverage: none
+
+      - name: PHP syntax
+        run: find . -name '*.php' -not -path './tests/vendor/*' -print0 | xargs -0 -n1 php -l > /dev/null
+
+      - name: JS syntax
+        run: for f in assets/js/*.js; do node --check "$f"; done
+
+  phpunit:
+    name: PHP ${{ matrix.php }} / WordPress ${{ matrix.wp }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # The oldest WordPress and PHP the plugin supports, and the newest.
+          - php: '7.4'
+            wp: '6.0'
+          - php: '7.4'
+            wp: '7.1'
+          - php: '8.3'
+            wp: '7.1'
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: wp_map_embed_tests
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -proot"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+
+    # Read by tests/wp-tests-config.php.
+    env:
+      WP_CORE_DIR: /tmp/wordpress
+      WP_TESTS_DB_HOST: 127.0.0.1:3306
+      WP_TESTS_DB_PASSWORD: root
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: mysqli
+          coverage: none
+          tools: composer, wp-cli
+
+      # The test suite of the same WordPress version as the core below.
+      - name: Install PHPUnit and the WordPress ${{ matrix.wp }} test suite
+        run: composer require --dev --no-interaction --no-progress -W "wp-phpunit/wp-phpunit:${{ matrix.wp }}.*"
+
+      - name: Download WordPress ${{ matrix.wp }}
+        run: wp core download --version=${{ matrix.wp }} --path="$WP_CORE_DIR" --skip-content
+
+      - name: PHPUnit
+        run: tests/vendor/bin/phpunit
