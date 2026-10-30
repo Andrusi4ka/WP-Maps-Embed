@@ -45,6 +45,7 @@ function wp_map_embed_asset_version( $path ) {
 require_once WP_MAP_EMBED_DIR . 'includes/class-wp-map-embed-svg-shape.php';
 require_once WP_MAP_EMBED_DIR . 'includes/class-wp-map-embed-settings.php';
 require_once WP_MAP_EMBED_DIR . 'includes/class-wp-map-embed-render.php';
+require_once WP_MAP_EMBED_DIR . 'includes/class-wp-map-embed-palette.php';
 require_once WP_MAP_EMBED_DIR . 'includes/class-wp-map-embed-admin.php';
 require_once WP_MAP_EMBED_DIR . 'includes/class-wp-map-embed-preview.php';
 require_once WP_MAP_EMBED_DIR . 'includes/class-wp-map-embed-wpbakery.php';

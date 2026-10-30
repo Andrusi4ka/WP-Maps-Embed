@@ -118,36 +118,54 @@ class WP_Map_Embed_Settings {
 			'height_unit'     => 'px',
 			'height_tablet'   => 0,
 			'height_mobile'   => 0,
+			// Existing maps keep their rounded corners until explicitly switched off.
+			'rounded'         => true,
 			'radius'          => 5,
 			// '' on tablet / mobile: as on the larger device (0 is a radius of its own).
 			'radius_tablet'   => '',
 			'radius_mobile'   => '',
+			'border'          => false,
+			'border_width'    => 1,
+			'border_width_tablet' => '',
+			'border_width_mobile' => '',
+			'border_style'    => 'solid',
+			'border_color'    => '#ffffff',
+			'shadow'          => false,
+			'shadow_x'        => 0,
+			'shadow_y'        => 8,
+			'shadow_blur'     => 24,
+			'shadow_spread'   => 0,
+			'shadow_color'    => 'rgba(0,0,0,0.25)',
 			// The size of everything on Google's map (names, roads, its buttons),
 			// %: the frame drawn larger or smaller and scaled to the block
 			// (frontend.css). '' on tablet / mobile: as on the larger device.
+			'scale_enabled'   => false,
 			'scale'           => 100,
 			'scale_tablet'    => '',
 			'scale_mobile'    => '',
 			// The stencil: an SVG file's shapes (WP_Map_Embed_Svg_Shape, geometry
 			// only, JSON), the map seen through them; '' none. Fitted into the
 			// block at its proportions, at shape_position (SHAPE_POSITIONS).
+			'shape_enabled'   => false,
 			'shape'           => '',
 			'shape_position'  => 'center center',
 			// The cover over the map until a click: the page scrolls past the map
 			// instead of zooming it.
-			'activate'        => true,
 			'grayscale'       => true,
 			// Google's frame loads only on that click.
 			'defer'           => false,
 			'placeholder'     => 0,
+			'overlay_enabled' => true,
 			'overlay_color'   => '#dfdad7',
 			'overlay_opacity' => 24,
+			'icon_enabled'    => true,
 			'icon'            => 'hand',
 			// Empty: the theme's primary colour.
 			'icon_color'      => '',
 			'icon_size'       => 70,
 			'icon_size_tablet' => '',
 			'icon_size_mobile' => '',
+			'text_enabled'    => false,
 			'label'           => '',
 		);
 	}
@@ -160,6 +178,26 @@ class WP_Map_Embed_Settings {
 	 */
 	public static function get( $post_id ) {
 		$saved = get_post_meta( $post_id, self::META, true );
+		if ( is_array( $saved ) && ! array_key_exists( 'text_enabled', $saved ) ) {
+			$saved['text_enabled'] = isset( $saved['label'] ) && '' !== trim( (string) $saved['label'] );
+		}
+		if ( is_array( $saved ) && isset( $saved['icon'] ) && 'none' === $saved['icon'] ) {
+			if ( ! array_key_exists( 'icon_enabled', $saved ) ) {
+				$saved['icon_enabled'] = false;
+			}
+			$saved['icon'] = 'hand';
+		}
+		if ( is_array( $saved ) && ! array_key_exists( 'scale_enabled', $saved ) ) {
+			$saved['scale_enabled'] = false;
+			foreach ( array( 'scale', 'scale_tablet', 'scale_mobile' ) as $key ) {
+				if ( isset( $saved[ $key ] ) && '' !== $saved[ $key ] && 100 !== (int) $saved[ $key ] ) {
+					$saved['scale_enabled'] = true;
+				}
+			}
+		}
+		if ( is_array( $saved ) && ! array_key_exists( 'shape_enabled', $saved ) ) {
+			$saved['shape_enabled'] = ! empty( $saved['shape'] );
+		}
 		return array_merge( self::defaults(), is_array( $saved ) ? $saved : array() );
 	}
 
@@ -184,8 +222,12 @@ class WP_Map_Embed_Settings {
 			'height_tablet'   => array( 0, $range[1] ),
 			'height_mobile'   => array( 0, $range[1] ),
 			'radius'          => array( 0, 100 ),
-			// Below 60% Google's buttons and its attribution get too small to read.
-			'scale'           => array( 60, 150 ),
+			'border_width'    => array( 0, 50 ),
+			'shadow_x'        => array( -200, 200 ),
+			'shadow_y'        => array( -200, 200 ),
+			'shadow_blur'     => array( 0, 200 ),
+			'shadow_spread'   => array( -200, 200 ),
+			'scale'           => array( 5, 150 ),
 			'overlay_opacity' => array( 0, 100 ),
 			'icon_size'       => array( 16, 200 ),
 		);
@@ -204,6 +246,8 @@ class WP_Map_Embed_Settings {
 		$per_device = array(
 			'radius_tablet'    => $ints['radius'],
 			'radius_mobile'    => $ints['radius'],
+			'border_width_tablet' => $ints['border_width'],
+			'border_width_mobile' => $ints['border_width'],
 			'scale_tablet'     => $ints['scale'],
 			'scale_mobile'     => $ints['scale'],
 			'icon_size_tablet' => $ints['icon_size'],
@@ -214,16 +258,30 @@ class WP_Map_Embed_Settings {
 		}
 
 		// Checkboxes: absent when unticked.
-		foreach ( array( 'activate', 'grayscale', 'defer' ) as $key ) {
+		foreach ( array( 'grayscale', 'defer', 'border', 'shadow', 'rounded', 'shape_enabled', 'scale_enabled', 'overlay_enabled', 'icon_enabled', 'text_enabled' ) as $key ) {
 			$out[ $key ] = ! empty( $raw[ $key ] );
 		}
 
 		$out['placeholder'] = isset( $raw['placeholder'] ) ? absint( $raw['placeholder'] ) : 0;
 
-		$color                = isset( $raw['overlay_color'] ) ? sanitize_hex_color( $raw['overlay_color'] ) : '';
+		// The picker sends one RGBA value; keep the existing hex/opacity storage
+		// so previously saved maps and older integrations retain their appearance.
+		$color = self::sanitize_color( isset( $raw['overlay_color'] ) ? $raw['overlay_color'] : '' );
+		if ( preg_match( '/^rgba\((\d+),(\d+),(\d+),([\d.]+)\)$/', $color, $channels ) ) {
+			$color = sprintf( '#%02x%02x%02x', (int) $channels[1], (int) $channels[2], (int) $channels[3] );
+			$out['overlay_opacity'] = (int) round( (float) $channels[4] * 100 );
+		} elseif ( '' !== $color && ! array_key_exists( 'overlay_opacity', $raw ) ) {
+			// Pickr uses hex when the chosen color is fully opaque.
+			$out['overlay_opacity'] = 100;
+		}
 		$out['overlay_color'] = $color ? $color : $defaults['overlay_color'];
-		$color                = isset( $raw['icon_color'] ) ? sanitize_hex_color( $raw['icon_color'] ) : '';
+		$color                = self::sanitize_color( isset( $raw['icon_color'] ) ? $raw['icon_color'] : '' );
 		$out['icon_color']    = $color ? $color : '';
+		foreach ( array( 'border_color', 'shadow_color' ) as $key ) {
+			$color = self::sanitize_color( isset( $raw[ $key ] ) ? $raw[ $key ] : '' );
+			$out[ $key ] = '' !== $color ? $color : $defaults[ $key ];
+		}
+		$out['border_style'] = isset( $raw['border_style'] ) && in_array( $raw['border_style'], array( 'solid', 'dashed', 'dotted', 'double' ), true ) ? $raw['border_style'] : 'solid';
 
 		$out['map_type']  = isset( $raw['map_type'] ) && in_array( $raw['map_type'], self::MAP_TYPES, true ) ? $raw['map_type'] : $defaults['map_type'];
 		$language         = isset( $raw['language'] ) ? (string) $raw['language'] : '';
@@ -242,6 +300,22 @@ class WP_Map_Embed_Settings {
 		$out['label'] = isset( $raw['label'] ) ? sanitize_text_field( $raw['label'] ) : '';
 
 		return $out;
+	}
+
+	/** Accept only hex or numeric rgba colors; never arbitrary CSS. */
+	public static function sanitize_color( $value ) {
+		if ( ! is_scalar( $value ) ) {
+			return '';
+		}
+		$value = strtolower( trim( (string) $value ) );
+		$hex = sanitize_hex_color( $value );
+		if ( $hex ) {
+			return $hex;
+		}
+		if ( preg_match( '/^rgba\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(0|1|0?\.\d+|1\.0+)\s*\)$/', $value, $match ) ) {
+			return sprintf( 'rgba(%d,%d,%d,%s)', min( 255, (int) $match[1] ), min( 255, (int) $match[2] ), min( 255, (int) $match[3] ), rtrim( rtrim( number_format( (float) $match[4], 2, '.', '' ), '0' ), '.' ) );
+		}
+		return '';
 	}
 
 	/**

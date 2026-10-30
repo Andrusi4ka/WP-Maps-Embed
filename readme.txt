@@ -12,6 +12,9 @@ Google Maps on a page without copying iframe code, with a "click to activate" co
 
 == Description ==
 
+* Appearance: border style and color, border width and corner radius per device, and a shadow with offsets, blur, spread and opacity. With an SVG stencil, the border follows its paths and the shadow follows its contour (spread and corner radius apply only without a stencil).
+* Color fields use Pickr 1.9.1 (MIT), with theme colors, HEX / RGB / HSL, Cancel and Default. Border and shadow colors support transparency. WP Swiper is not required.
+
 * Maps are kept under WP Maps Embed, each with its own settings, and placed with a shortcode or the "WP Maps Embed" element in WPBakery: change a map once, every page with it follows.
 * A map from an address (no API key needed) or from Google's "Share > Embed a map" code — the whole iframe or just its link.
 * Map or satellite view, and the language of the map's names and labels (the site's or another).

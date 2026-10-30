@@ -1,11 +1,14 @@
 /* WP Maps Embed: the map's frame and its "click to activate" cover. */
 
 .wp-map-embed {
+	box-sizing: border-box;
 	position: relative;
 	overflow: hidden;
 	width: 100%;
 	height: var(--wme-height, 450px);
 	border-radius: var(--wme-radius, 0);
+	border: var(--wme-border-width, 0px) var(--wme-border-style, solid) var(--wme-border-color, transparent);
+	box-shadow: var(--wme-shadow, none);
 	/* Google's land colour, then the placeholder image of a deferred map. */
 	background: #e5e3df var(--wme-placeholder, none) center / cover no-repeat;
 }
@@ -20,6 +23,7 @@
 	.wp-map-embed {
 		height: var(--wme-height-tablet, var(--wme-height, 450px));
 		border-radius: var(--wme-radius-tablet, var(--wme-radius, 0));
+		border-width: var(--wme-border-width-tablet, var(--wme-border-width, 0px));
 	}
 
 	.wp-map-embed.wp-map-embed--ratio {
@@ -32,6 +36,7 @@
 	.wp-map-embed {
 		height: var(--wme-height-mobile, var(--wme-height-tablet, var(--wme-height, 450px)));
 		border-radius: var(--wme-radius-mobile, var(--wme-radius-tablet, var(--wme-radius, 0)));
+		border-width: var(--wme-border-width-mobile, var(--wme-border-width-tablet, var(--wme-border-width, 0px)));
 	}
 
 	.wp-map-embed.wp-map-embed--ratio {
@@ -50,21 +55,83 @@
    and its cover only inside them, the page showing round them. Its box is
    as large as the block allows at the shapes' proportions (as "contain"),
    placed by --wme-shape-x / -y; the clip path scales with the box. The
-   corner radius does not apply: the shapes are the outline. */
+   SVG border and shadow follow the stencil's contour, as in WP Swiper. */
 .wp-map-embed.wp-map-embed--shape {
 	container-type: size;
+	overflow: visible;
+	border: 0;
 	border-radius: 0;
+	box-shadow: none;
 	background: none;
 }
 
-.wp-map-embed__shape {
+.wp-map-embed__shape-stage {
 	--wme-shape-w: min(100cqw, 100cqh * var(--wme-shape-ratio, 1));
 	position: absolute;
 	top: calc((100cqh - var(--wme-shape-w) / var(--wme-shape-ratio, 1)) * var(--wme-shape-y, 0.5));
 	left: calc((100cqw - var(--wme-shape-w)) * var(--wme-shape-x, 0.5));
 	width: var(--wme-shape-w);
 	height: calc(var(--wme-shape-w) / var(--wme-shape-ratio, 1));
+	filter: var(--wme-shape-shadow, none);
+}
+
+.wp-map-embed__shape {
+	position: absolute;
+	inset: 0;
 	background: #e5e3df var(--wme-placeholder, none) center / cover no-repeat;
+}
+
+.wp-map-embed__shape-border {
+	--wme-bw: var(--wme-border-width, 0px);
+	position: absolute;
+	inset: 0;
+	z-index: 11;
+	width: 100%;
+	height: 100%;
+	overflow: visible;
+	pointer-events: none;
+}
+
+/* Twice the width: the stencil clips off the outer half of the stroke. */
+.wp-map-embed__border-line path {
+	fill: none;
+	stroke: var(--wme-border-color, #fff);
+	stroke-width: calc(var(--wme-bw) * 2);
+	stroke-linejoin: round;
+}
+
+.wp-map-embed__shape-border--dashed .wp-map-embed__border-line path {
+	stroke-dasharray: calc(var(--wme-bw) * 3) calc(var(--wme-bw) * 2);
+}
+
+.wp-map-embed__shape-border--dotted .wp-map-embed__border-line path {
+	stroke-dasharray: 0 calc(var(--wme-bw) * 3);
+	stroke-linecap: round;
+}
+
+.wp-map-embed__border-gap path {
+	fill: none;
+	stroke: #000;
+	stroke-width: calc(var(--wme-bw) * 4 / 3);
+}
+
+/* Restore the inner third of the double border, leaving its middle clear. */
+.wp-map-embed__border-inner path {
+	fill: none;
+	stroke: #fff;
+	stroke-width: calc(var(--wme-bw) * 2 / 3);
+}
+
+@media (max-width: 1024px) {
+	.wp-map-embed__shape-border {
+		--wme-bw: var(--wme-border-width-tablet, var(--wme-border-width, 0px));
+	}
+}
+
+@media (max-width: 767px) {
+	.wp-map-embed__shape-border {
+		--wme-bw: var(--wme-border-width-mobile, var(--wme-border-width-tablet, var(--wme-border-width, 0px)));
+	}
 }
 
 .wp-map-embed__clip {

@@ -35,9 +35,10 @@ class WP_Map_Embed_Admin {
 
 		if ( in_array( $hook, array( 'post.php', 'post-new.php' ), true ) ) {
 			wp_enqueue_media();
-			wp_enqueue_style( 'wp-color-picker' );
+			wp_enqueue_style( 'wp-map-embed-pickr', WP_MAP_EMBED_URL . 'assets/vendor/pickr/classic.min.css', array(), '1.9.1' );
+			wp_enqueue_script( 'wp-map-embed-pickr', WP_MAP_EMBED_URL . 'assets/vendor/pickr/pickr.min.js', array(), '1.9.1', true );
 			// The preview is a frame of its own (WP_Map_Embed_Preview) with the site's files.
-			wp_enqueue_script( 'wp-map-embed-admin', WP_MAP_EMBED_URL . 'assets/js/admin.js', array( 'jquery', 'wp-color-picker' ), wp_map_embed_asset_version( 'assets/js/admin.js' ), true );
+			wp_enqueue_script( 'wp-map-embed-admin', WP_MAP_EMBED_URL . 'assets/js/admin.js', array( 'jquery', 'wp-map-embed-pickr' ), wp_map_embed_asset_version( 'assets/js/admin.js' ), true );
 			wp_localize_script(
 				'wp-map-embed-admin',
 				'wpMapEmbedAdmin',
@@ -45,6 +46,21 @@ class WP_Map_Embed_Admin {
 					'frameTitle'  => __( 'Choose the placeholder image', 'wp-map-embed' ),
 					'frameButton' => __( 'Use this image', 'wp-map-embed' ),
 					'copied'      => __( 'Copied!', 'wp-map-embed' ),
+					'unsaved'     => __( 'The changes you made will be lost if you leave this page.', 'wp-map-embed' ),
+					'textColors' => WP_Map_Embed_Palette::tinymce_map(),
+					'colorPicker' => array(
+						'ui:dialog'       => __( 'Color picker', 'wp-map-embed' ),
+						'btn:toggle'      => __( 'Choose a color', 'wp-map-embed' ),
+						'btn:swatch'      => __( 'Color', 'wp-map-embed' ),
+						'btn:cancel'      => __( 'Cancel', 'wp-map-embed' ),
+						'aria:btn:cancel' => __( 'Back to the color it had when opened', 'wp-map-embed' ),
+						'aria:input'      => __( 'Color value', 'wp-map-embed' ),
+						'aria:palette'    => __( 'Color and brightness', 'wp-map-embed' ),
+						'aria:hue'        => __( 'Hue', 'wp-map-embed' ),
+						'aria:opacity'    => __( 'Opacity', 'wp-map-embed' ),
+						'default'         => __( 'Default', 'wp-map-embed' ),
+						'defaultLabel'    => __( 'Back to the default color', 'wp-map-embed' ),
+					),
 					'shapeMax'    => WP_Map_Embed_Svg_Shape::MAX_BYTES,
 					'shapeUpload' => __( 'Upload SVG', 'wp-map-embed' ),
 					'shapeReplace' => __( 'Replace SVG', 'wp-map-embed' ),
@@ -103,6 +119,7 @@ class WP_Map_Embed_Admin {
 		self::range( 'zoom', $values['zoom'], 1, 21, '' );
 		self::row_end();
 
+		echo '</div><div class="wp-map-embed-admin__block">';
 		self::row_start( 'map_type', __( 'Map type', 'wp-map-embed' ), __( 'Satellite comes with street and place names. “As copied”: the view of Google’s embed code; for an address, Map.', 'wp-map-embed' ) );
 		self::segmented(
 			'map_type',
@@ -130,7 +147,7 @@ class WP_Map_Embed_Admin {
 		}
 		echo '</select>';
 		self::row_end();
-		echo '</fieldset>';
+		echo '</div></fieldset>';
 
 		// Size.
 		self::page_start( 'size' );
@@ -202,21 +219,55 @@ class WP_Map_Embed_Admin {
 		echo '</div>';
 		self::row_end();
 
-		self::responsive_px( 'radius', __( 'Corner radius', 'wp-map-embed' ), $values, 0, 100 );
+		echo '</div><div class="wp-map-embed-admin__block">';
+		self::row_start( 'scale_enabled', '' );
+		self::checkbox( 'scale_enabled', $values['scale_enabled'], __( 'Map scale', 'wp-map-embed' ), '' );
+		self::row_end();
 		self::responsive_px(
 			'scale',
-			__( 'Map scale', 'wp-map-embed' ),
+			__( 'Scale', 'wp-map-embed' ),
 			$values,
-			60,
+			5,
 			150,
-			'',
+			'scale_enabled',
 			'%',
 			__( 'The size of everything on the map: names, roads, Google’s buttons. Under 100%: smaller, more of the area in view; over 100%: larger, a little blurred. The block keeps its size.', 'wp-map-embed' )
 		);
-		echo '</fieldset>';
+		echo '</div></fieldset>';
 
-		// Stencil.
-		self::page_start( 'shape' );
+		// Appearance applies to the outer block, including when a stencil is used.
+		self::page_start( 'appearance' );
+		self::row_start( 'rounded', '' );
+		self::checkbox( 'rounded', $values['rounded'], __( 'Rounded corners', 'wp-map-embed' ), '' );
+		self::row_end();
+		self::responsive_px( 'radius', __( 'Corner radius', 'wp-map-embed' ), $values, 0, 100, 'rounded' );
+		self::row_start( 'border', '' );
+		self::checkbox( 'border', $values['border'], __( 'Border', 'wp-map-embed' ), '' );
+		self::row_end();
+		self::responsive_px( 'border_width', __( 'Border width', 'wp-map-embed' ), $values, 0, 50, 'border' );
+		self::row_start( 'border_style', __( 'Border style', 'wp-map-embed' ), '', 'border' );
+		self::segmented( 'border_style', $values['border_style'], array( 'solid' => __( 'Solid', 'wp-map-embed' ), 'dashed' => __( 'Dashed', 'wp-map-embed' ), 'dotted' => __( 'Dotted', 'wp-map-embed' ), 'double' => __( 'Double', 'wp-map-embed' ) ) );
+		self::row_end();
+		self::row_start( 'border_color', __( 'Border color', 'wp-map-embed' ), '', 'border' );
+		self::color( 'border_color', $values['border_color'], '#ffffff', true );
+		self::row_end();
+		self::row_start( 'shadow', '' );
+		self::checkbox( 'shadow', $values['shadow'], __( 'Shadow', 'wp-map-embed' ), '' );
+		self::row_end();
+		echo '<div class="wp-map-embed-admin__shadow-fields">';
+		foreach ( array( 'shadow_x' => array( 'X', __( 'Horizontal offset', 'wp-map-embed' ) ), 'shadow_y' => array( 'Y', __( 'Vertical offset', 'wp-map-embed' ) ), 'shadow_blur' => array( __( 'Blur', 'wp-map-embed' ), __( 'Blur', 'wp-map-embed' ) ), 'shadow_spread' => array( __( 'Spread', 'wp-map-embed' ), __( 'Spread', 'wp-map-embed' ) ) ) as $key => $labels ) {
+			self::row_start( $key, $labels[0], '', 'shadow' );
+			printf( '<input type="number" name="wp_map_embed[%1$s]" value="%2$d" min="%3$d" max="200" step="1" aria-label="%4$s" title="%4$s (px)">', esc_attr( $key ), (int) $values[ $key ], 'shadow_blur' === $key ? 0 : -200, esc_attr( $labels[1] ) );
+			self::row_end();
+		}
+		echo '</div>';
+		self::row_start( 'shadow_color', __( 'Shadow color', 'wp-map-embed' ), '', 'shadow' );
+		self::color( 'shadow_color', $values['shadow_color'], 'rgba(0,0,0,0.25)', true );
+		self::row_end();
+		// Stencil is the final option in Appearance.
+		self::row_start( 'shape_enabled', '' );
+		self::checkbox( 'shape_enabled', $values['shape_enabled'], __( 'Shape', 'wp-map-embed' ), '' );
+		self::row_end();
 		self::row_start( 'shape', __( 'SVG stencil', 'wp-map-embed' ), __( 'The map shows only through the shapes of an SVG file (all of them together), the page round them. Filled shapes count; outlines, lines and text are left out. Keep Google’s logo and the bottom edge of the map in the shape: Google’s terms do not allow hiding them.', 'wp-map-embed' ) );
 		self::shape_box( $values['shape'] );
 		self::row_end();
@@ -224,19 +275,15 @@ class WP_Map_Embed_Admin {
 		self::row_start( 'shape_position', __( 'Shape position', 'wp-map-embed' ), __( 'The shape keeps its proportions and fits the block; where their proportions differ, this is where it sits.', 'wp-map-embed' ), 'shape' );
 		self::positions( 'shape_position', $values['shape_position'] );
 		self::row_end();
-		echo '</fieldset>';
+		echo '</div></fieldset>';
 
 		// Cover.
 		self::page_start( 'cover' );
-		self::row_start( 'activate', '' );
-		self::checkbox( 'activate', $values['activate'], __( 'Cover the map until it is clicked', 'wp-map-embed' ), __( 'Visitors scroll past the map instead of zooming it by accident; a click makes it usable.', 'wp-map-embed' ) );
-		self::row_end();
-
-		self::row_start( 'grayscale', '', '', 'activate' );
+		self::row_start( 'grayscale', '' );
 		self::checkbox( 'grayscale', $values['grayscale'], __( 'Black and white until clicked', 'wp-map-embed' ) );
 		self::row_end();
 
-		self::row_start( 'defer', '', '', 'activate' );
+		self::row_start( 'defer', '' );
 		self::checkbox( 'defer', $values['defer'], __( 'Load the map only after a click', 'wp-map-embed' ), __( 'The page loads faster and Google gets nothing from visitors who do not open the map. Until the click the block shows its colour or the placeholder image.', 'wp-map-embed' ) );
 		self::row_end();
 
@@ -253,20 +300,21 @@ class WP_Map_Embed_Admin {
 		);
 		self::row_end();
 
-		self::row_start( 'overlay_color', __( 'Cover colour', 'wp-map-embed' ), '', 'activate' );
-		self::color( 'overlay_color', $values['overlay_color'], '#dfdad7' );
+		self::row_start( 'overlay_enabled', '' );
+		self::checkbox( 'overlay_enabled', $values['overlay_enabled'], __( 'Cover colour', 'wp-map-embed' ), '' );
+		self::row_end();
+		self::row_start( 'overlay_color', __( 'Colour', 'wp-map-embed' ), '', 'overlay_enabled' );
+		self::color( 'overlay_color', WP_Map_Embed_Render::rgba( $values['overlay_color'], (int) $values['overlay_opacity'] ), 'rgba(223,218,215,0.24)', true );
 		self::row_end();
 
-		self::row_start( 'overlay_opacity', __( 'Cover opacity', 'wp-map-embed' ), '', 'activate' );
-		self::range( 'overlay_opacity', $values['overlay_opacity'], 0, 100, '%' );
+		self::row_start( 'icon_enabled', '' );
+		self::checkbox( 'icon_enabled', $values['icon_enabled'], __( 'Icon', 'wp-map-embed' ), '' );
 		self::row_end();
-
-		self::row_start( 'icon', __( 'Icon', 'wp-map-embed' ), '', 'activate' );
+		self::row_start( 'icon', __( 'Icon type', 'wp-map-embed' ), '', 'icon_enabled' );
 		echo '<div class="wp-map-embed-admin__icons" role="radiogroup">';
 		$icons = array(
 			'hand' => __( 'Hand', 'wp-map-embed' ),
 			'pin'  => __( 'Pin', 'wp-map-embed' ),
-			'none' => __( 'None', 'wp-map-embed' ),
 		);
 		foreach ( $icons as $icon => $label ) {
 			printf(
@@ -281,15 +329,18 @@ class WP_Map_Embed_Admin {
 		self::row_end();
 
 		self::row_start( 'icon_color', __( 'Icon colour', 'wp-map-embed' ), __( 'Empty: the theme’s primary colour.', 'wp-map-embed' ), 'icon' );
-		self::color( 'icon_color', $values['icon_color'], '' );
+		self::color( 'icon_color', $values['icon_color'], '', true );
 		self::row_end();
 
 		self::responsive_px( 'icon_size', __( 'Icon size', 'wp-map-embed' ), $values, 16, 200, 'icon' );
 
-		self::row_start( 'label', __( 'Text', 'wp-map-embed' ), __( 'Under the icon, for example “Click to open the map”. Empty: no text.', 'wp-map-embed' ), 'activate' );
+		self::row_start( 'text_enabled', '' );
+		self::checkbox( 'text_enabled', $values['text_enabled'], __( 'Text', 'wp-map-embed' ), '' );
+		self::row_end();
+		self::row_start( 'label', __( 'Text', 'wp-map-embed' ), __( 'Under the icon, for example “Click to open the map”. Empty: no text.', 'wp-map-embed' ), 'text_enabled' );
 		printf( '<input type="text" class="regular-text" name="wp_map_embed[label]" value="%s">', esc_attr( $values['label'] ) );
 		self::row_end();
-		echo '</fieldset>';
+		echo '</div></fieldset>';
 
 		echo '</div>';
 
@@ -309,7 +360,7 @@ class WP_Map_Embed_Admin {
 		return array(
 			'map'   => array( __( 'Map', 'wp-map-embed' ), 'dashicons-location-alt' ),
 			'size'  => array( __( 'Size', 'wp-map-embed' ), 'dashicons-editor-expand' ),
-			'shape' => array( __( 'Shape', 'wp-map-embed' ), 'dashicons-star-filled' ),
+			'appearance' => array( __( 'Appearance', 'wp-map-embed' ), 'dashicons-art' ),
 			'cover' => array( __( 'Click to activate', 'wp-map-embed' ), 'dashicons-visibility' ),
 		);
 	}
@@ -322,7 +373,7 @@ class WP_Map_Embed_Admin {
 	 */
 	private static function page_start( $page ) {
 		printf(
-			'<fieldset class="wp-map-embed-admin__group wp-map-embed-admin__page" id="wp-map-embed-page-%1$s" data-page="%1$s"%2$s><legend>%3$s</legend>',
+			'<fieldset class="wp-map-embed-admin__group wp-map-embed-admin__page" id="wp-map-embed-page-%1$s" data-page="%1$s"%2$s><legend>%3$s</legend><div class="wp-map-embed-admin__block">',
 			esc_attr( $page ),
 			'map' === $page ? '' : ' hidden',
 			esc_html( self::pages()[ $page ][0] )
@@ -507,12 +558,14 @@ class WP_Map_Embed_Admin {
 		);
 	}
 
-	private static function color( $key, $value, $default ) {
+	private static function color( $key, $value, $default, $alpha = false ) {
 		printf(
-			'<input type="text" class="wp-map-embed-admin__color" name="wp_map_embed[%1$s]" value="%2$s" data-default-color="%3$s">',
+			'<span class="wp-map-embed-color-pick" data-alpha="%1$d" data-default="%2$s"><input type="hidden" class="wp-map-embed-color-pick__value" name="wp_map_embed[%3$s]" value="%4$s"><button type="button" class="wp-map-embed-color-pick__swatch" aria-label="%5$s" aria-expanded="false"><span class="wp-map-embed-color-pick__chip" aria-hidden="true"></span></button></span>',
+			$alpha ? 1 : 0,
+			esc_attr( $default ),
 			esc_attr( $key ),
 			esc_attr( $value ),
-			esc_attr( $default )
+			esc_attr__( 'Choose a color', 'wp-map-embed' )
 		);
 	}
 

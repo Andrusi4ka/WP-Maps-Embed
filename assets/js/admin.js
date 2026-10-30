@@ -44,7 +44,6 @@
 		}
 
 		function dependencies() {
-			var activate = checked( 'activate' );
 			var icon     = $box.find( '[name="wp_map_embed[icon]"]:checked' ).val();
 			var mode     = $box.find( '[name="wp_map_embed[size_mode]"]:checked' ).val();
 
@@ -52,18 +51,28 @@
 			setOff( 'height', 'ratio' === mode );
 			$box.find( '[data-field="size_mode"] [data-mode="fill"]' ).prop( 'hidden', 'fill' !== mode );
 
-			$box.find( '.wp-map-embed-admin__row[data-depends="activate"]' ).each( function () {
-				setOff( $( this ).data( 'field' ), ! activate );
-			} );
-			setOff( 'placeholder', ! activate || ! checked( 'defer' ) );
-			setOff( 'icon_color', ! activate || 'none' === icon );
-			setOff( 'icon_size', ! activate || 'none' === icon );
+			setOff( 'placeholder', ! checked( 'defer' ) );
+			setOff( 'overlay_color', ! checked( 'overlay_enabled' ) );
+			setOff( 'icon', ! checked( 'icon_enabled' ) );
+			setOff( 'label', ! checked( 'text_enabled' ) );
+			setOff( 'icon_color', ! checked( 'icon_enabled' ) || 'none' === icon );
+			setOff( 'icon_size', ! checked( 'icon_enabled' ) || 'none' === icon );
 			setOff( 'zoom', ! isAddress() );
 
-			// With a stencil its shapes are the outline: no corner radius.
+			// SVG outlines use a stroke and drop-shadow, as in WP Swiper.
 			var shape = '' !== ( field( 'shape' ).val() || '' );
-			setOff( 'shape_position', ! shape );
-			setOff( 'radius', shape );
+			var shaped = checked( 'shape_enabled' ) && shape;
+			setOff( 'shape', ! checked( 'shape_enabled' ) );
+			setOff( 'shape_position', ! checked( 'shape_enabled' ) || ! shape );
+			setOff( 'rounded', shaped );
+			setOff( 'radius', shaped || ! checked( 'rounded' ) );
+			setOff( 'scale', ! checked( 'scale_enabled' ) );
+			[ 'border_width', 'border_style', 'border_color' ].forEach( function ( key ) { setOff( key, ! checked( 'border' ) ); } );
+			[ 'shadow_x', 'shadow_y', 'shadow_blur', 'shadow_spread', 'shadow_color' ].forEach( function ( key ) { setOff( key, ! checked( 'shadow' ) ); } );
+			setOff( 'shadow_spread', shaped || ! checked( 'shadow' ) );
+			$box.find( '.wp-map-embed-admin__block' ).each( function () {
+				$( this ).prop( 'hidden', ! $( this ).find( '.wp-map-embed-admin__row:not([hidden])' ).length );
+			} );
 		}
 
 		/*
@@ -164,13 +173,203 @@
 			$( this ).siblings( 'input' ).val( this.value );
 		} );
 
-		$box.find( '.wp-map-embed-admin__color' ).wpColorPicker( {
-			change: function ( event, ui ) {
-				// The picker fires before the field holds the new value.
-				$( event.target ).val( ui.color.toString() );
-				changed();
-			},
-			clear: changed,
+		var COLOR_PICK = '.wp-map-embed-color-pick';
+		var colorI18n = $.extend( {}, l10n.colorPicker || {} );
+		// The palette's colors and names (TinyMCE's map: "RRGGBB", name, …).
+		var colorSwatches = [];
+		var colorNames = [];
+		( $.isArray( l10n.textColors ) ? l10n.textColors : [] ).forEach( function ( item, i, map ) {
+			if ( i % 2 === 0 && /^[0-9a-f]{6}$/i.test( item ) ) {
+				colorSwatches.push( '#' + item.toLowerCase() );
+				colorNames.push( String( map[ i + 1 ] || '' ) );
+			}
+		} );
+
+		// "#rrggbb" / "rgba(r,g,b,a)" as { hex, alpha }; null for anything else.
+		function parseColor( value ) {
+			value = String( value || '' ).replace( /\s+/g, '' ).toLowerCase();
+			var m = /^rgba\((\d{1,3}),(\d{1,3}),(\d{1,3}),(\d*\.?\d+)\)$/.exec( value );
+			if ( m ) {
+				return {
+					hex: '#' + [ m[ 1 ], m[ 2 ], m[ 3 ] ].map( function ( channel ) {
+						return ( '0' + Math.min( 255, parseInt( channel, 10 ) ).toString( 16 ) ).slice( -2 );
+					} ).join( '' ),
+					alpha: Math.round( Math.min( 1, parseFloat( m[ 4 ] ) ) * 100 )
+				};
+			}
+			if ( /^#[0-9a-f]{3}$/.test( value ) ) {
+				value = '#' + value[ 1 ] + value[ 1 ] + value[ 2 ] + value[ 2 ] + value[ 3 ] + value[ 3 ];
+			}
+			return /^#[0-9a-f]{6}$/.test( value ) ? { hex: value, alpha: 100 } : null;
+		}
+
+		function colorValue( hex, alpha ) {
+			if ( alpha >= 100 ) {
+				return hex;
+			}
+			return 'rgba(' + [ 1, 3, 5 ].map( function ( i ) {
+				return parseInt( hex.substr( i, 2 ), 16 );
+			} ).join( ',' ) + ',' + ( alpha / 100 ) + ')';
+		}
+
+		// What Default goes back to.
+		function pickDefault( $pick ) {
+			return parseColor( $pick.attr( 'data-default' ) ) || { hex: '#000000', alpha: 100 };
+		}
+
+		// The swatch says what is chosen (over its checkerboard, admin.css).
+		function paintColor( $pick ) {
+			$pick.find( '.wp-map-embed-color-pick__chip' ).css( 'box-shadow', 'inset 0 0 0 60px ' + colorValue( $pick.data( 'hex' ), $pick.data( 'alpha' ) ) );
+		}
+
+		// Into Pickr (no event of its own), in the format it shows.
+		function pickrShow( $pick ) {
+			var pickr = $pick.data( 'pickr' );
+			if ( ! pickr || ! $pick.data( 'pickrReady' ) ) {
+				return;
+			}
+			var shown = pickr.getColorRepresentation() || 'HEXA';
+			// Its format buttons say "change" too: not a new color.
+			$pick.data( 'pickrSync', true );
+			pickr.setColor( colorValue( $pick.data( 'hex' ), $pick.data( 'alpha' ) ), true );
+			pickr.setColorRepresentation( shown );
+			$pick.data( 'pickrSync', false );
+			// What Cancel goes back to.
+			pickr.applyColor( true );
+		}
+
+		function setColor( $pick, hex, alpha ) {
+			$pick.data( { hex: hex, alpha: alpha } );
+			paintColor( $pick );
+		}
+
+		// A setting's field: what is chosen into its input (the preview and
+		// the "unsaved" warning take it as any other change).
+		function colorPicked( $pick ) {
+			var $input = $pick.find( '.wp-map-embed-color-pick__value' );
+			var value = colorValue( $pick.data( 'hex' ), $pick.data( 'alpha' ) );
+			if ( $input.length && $input.val() !== value ) {
+				$input.val( value ).trigger( 'change' );
+			}
+		}
+
+		// From Pickr: the color it shows, as the field keeps it. Only a new
+		// one counts (Pickr says "change" for a format button too).
+		function fromPickr( $pick, color ) {
+			if ( ! color || $pick.data( 'pickrSync' ) ) {
+				return;
+			}
+			var rgba = color.toRGBA();
+			var hex = '#' + [ 0, 1, 2 ].map( function ( i ) {
+				return ( '0' + Math.max( 0, Math.min( 255, Math.round( rgba[ i ] ) ) ).toString( 16 ) ).slice( -2 );
+			} ).join( '' );
+			var alpha = $pick.attr( 'data-alpha' ) === '1' ? Math.max( 0, Math.min( 100, Math.round( rgba[ 3 ] * 100 ) ) ) : 100;
+			if ( hex === $pick.data( 'hex' ) && alpha === $pick.data( 'alpha' ) ) {
+				return;
+			}
+			setColor( $pick, hex, alpha );
+			colorPicked( $pick );
+		}
+
+		function closeColorPickers() {
+			$( COLOR_PICK ).each( function () {
+				var pickr = $( this ).data( 'pickr' );
+				if ( pickr ) {
+					pickr.hide();
+				}
+			} );
+		}
+
+		// Pickr the first time a field opens (one app each, in the body).
+		function makePickr( $pick ) {
+			var button = $pick.find( '.wp-map-embed-color-pick__swatch' )[ 0 ];
+			var alpha = $pick.attr( 'data-alpha' ) === '1';
+			var pickr = window.Pickr.create( {
+				el: button,
+				useAsButton: true,
+				theme: 'classic',
+				appClass: 'wp-map-embed-pcr',
+				position: 'bottom-start',
+				default: colorValue( $pick.data( 'hex' ), $pick.data( 'alpha' ) ),
+				defaultRepresentation: 'HEXA',
+				lockOpacity: ! alpha,
+				swatches: colorSwatches,
+				i18n: $.extend( {}, colorI18n, { 'btn:toggle': button.getAttribute( 'aria-label' ) } ),
+				components: {
+					preview: false,
+					opacity: alpha,
+					hue: true,
+					interaction: {
+						hex: true,
+						rgba: true,
+						hsla: true,
+						input: true,
+						cancel: true
+					}
+				}
+			} );
+			$pick.data( 'pickr', pickr );
+			pickr.on( 'init', function ( instance ) {
+				var $app = $( instance.getRoot().app );
+				// The palette's names on hover.
+				$app.find( '.pcr-swatches > button' ).each( function ( i ) {
+					if ( colorNames[ i ] ) {
+						this.setAttribute( 'title', colorNames[ i ] );
+						this.setAttribute( 'aria-label', colorNames[ i ] );
+					}
+				} );
+				// Default, after Cancel: red, as Pickr's own Clear (classic theme).
+				$( '<input type="button" class="pcr-clear wp-map-embed-pcr__default">' )
+					.val( colorI18n[ 'default' ] || 'Default' )
+					.attr( 'aria-label', colorI18n.defaultLabel || '' )
+					.appendTo( $app.find( '.pcr-interaction' ) )
+					.on( 'click', function () {
+						var color = pickDefault( $pick );
+						setColor( $pick, color.hex, color.alpha );
+						colorPicked( $pick );
+						if ( ! $pick.attr( 'data-default' ) ) {
+							$pick.find( '.wp-map-embed-color-pick__value' ).val( '' ).trigger( 'change' );
+						}
+						pickrShow( $pick );
+					} );
+				$pick.data( 'pickrReady', true );
+				instance.show();
+			} );
+			pickr.on( 'show', function () {
+				$pick.data( 'originalValue', $pick.find( '.wp-map-embed-color-pick__value' ).val() );
+				pickrShow( $pick );
+				button.setAttribute( 'aria-expanded', 'true' );
+			} );
+			pickr.on( 'hide', function () {
+				button.setAttribute( 'aria-expanded', 'false' );
+			} );
+			pickr.on( 'change', function ( color ) {
+				fromPickr( $pick, color );
+			} );
+			pickr.on( 'cancel', function ( instance ) {
+				fromPickr( $pick, instance.getColor() );
+				$pick.find( '.wp-map-embed-color-pick__value' ).val( $pick.data( 'originalValue' ) ).trigger( 'change' );
+				instance.hide();
+			} );
+		}
+
+		$( document ).on( 'click', '.wp-map-embed-color-pick__swatch', function () {
+			var $pick = $( this ).closest( COLOR_PICK );
+			if ( ! $pick.data( 'pickr' ) && window.Pickr ) {
+				makePickr( $pick );
+			}
+		} );
+		// The fields show their saved color.
+		$( COLOR_PICK ).each( function () {
+			var $pick = $( this );
+			var color = parseColor( $pick.find( '.wp-map-embed-color-pick__value' ).val() ) || pickDefault( $pick );
+			$pick.find( '.wp-map-embed-color-pick__swatch' ).attr( 'aria-expanded', 'false' );
+			setColor( $pick, color.hex, color.alpha );
+		} );
+
+		$box.on( 'click', '.wp-map-embed-admin__menu-item', closeColorPickers );
+		$( document ).on( 'keydown', function ( event ) {
+			if ( event.key === 'Escape' ) { closeColorPickers(); }
 		} );
 
 		/*
@@ -505,6 +704,40 @@
 		// The device kept from the last visit, and the preview drawn at once.
 		setDevice( currentDevice );
 		refresh();
+
+		// As in WP Swiper: compare the title and saved settings with the
+		// initial state, so reverting an edit removes the warning again.
+		// Preview refreshes and device/page switches never mark data as saved.
+		if ( $form.length ) {
+			function formState() {
+				return JSON.stringify( $form.serializeArray().filter( function ( item ) {
+					return item.name === 'post_title' || /^wp_map_embed\[/.test( item.name );
+				} ) );
+			}
+			var savedState = formState();
+			var saving = false;
+			var savingTimer;
+
+			$form.on( 'submit.wp-map-embed', function () {
+				saving = true;
+				clearTimeout( savingTimer );
+				// A prevented/failed submission must not disable the warning forever.
+				savingTimer = setTimeout( function () {
+					saving = false;
+				}, 3000 );
+			} );
+
+			$( window ).on( 'beforeunload.wp-map-embed', function ( event ) {
+				if ( saving || formState() === savedState ) {
+					return;
+				}
+				// Modern browsers display their own confirmation text.
+				var message = l10n.unsaved || 'The changes you made will be lost if you leave this page.';
+				event.preventDefault();
+				event.originalEvent.returnValue = message;
+				return message;
+			} );
+		}
 	} );
 
 	// The shortcode fields (edit screen and the maps list): copy on click.
