@@ -166,6 +166,29 @@ class Test_Render extends WP_Map_Embed_TestCase {
 		$this->assertSame( 'rgba(0,0,0,0)', WP_Map_Embed_Render::rgba( '#000000', -3 ) );
 	}
 
+	public function test_map_scale() {
+		$this->assertSame( 100, WP_Map_Embed_Settings::defaults()['scale'] );
+
+		// 100%: nothing written (frontend.css takes 1).
+		$this->assertStringNotContainsString( '--wme-scale', $this->style( $this->render() ) );
+
+		// A factor; tablet / mobile only with a value of their own.
+		$style = $this->style( $this->render( array( 'scale' => '80', 'scale_mobile' => '100' ) ) );
+		$this->assertStringContainsString( '--wme-scale:0.8;', $style );
+		$this->assertStringNotContainsString( '--wme-scale-tablet', $style );
+		$this->assertStringContainsString( '--wme-scale-mobile:1;', $style );
+
+		// 60–150%; empty on tablet / mobile stays empty, desktop empty is 100.
+		$settings = $this->settings( array( 'scale' => '20', 'scale_tablet' => '400', 'scale_mobile' => ' ' ) );
+		$this->assertSame( 60, $settings['scale'] );
+		$this->assertSame( 150, $settings['scale_tablet'] );
+		$this->assertSame( '', $settings['scale_mobile'] );
+		$this->assertSame( 100, $this->settings( array( 'scale' => '' ) )['scale'] );
+
+		// A map saved before keeps 100%.
+		$this->assertSame( 100, WP_Map_Embed_Settings::get( $this->map( array( 'source' => 'Oslo' ) ) )['scale'] );
+	}
+
 	public function test_frame_shows_the_embed_url() {
 		$this->assertSame( self::PB, $this->frame_url( $this->render( array( 'source' => self::PB ) ) ) );
 	}

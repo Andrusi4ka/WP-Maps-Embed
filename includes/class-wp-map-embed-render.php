@@ -223,6 +223,18 @@ class WP_Map_Embed_Render {
 				}
 			}
 		}
+		// The map's scale, as a factor; 100% (none) not written. Tablet and
+		// mobile only with a value of their own (else as on the larger device).
+		$scale = isset( $settings['scale'] ) ? (int) $settings['scale'] : 100;
+		if ( 100 !== $scale ) {
+			$vars['--wme-scale'] = self::number( $scale / 100 );
+		}
+		foreach ( array( 'tablet', 'mobile' ) as $device ) {
+			$value = isset( $settings[ 'scale_' . $device ] ) ? $settings[ 'scale_' . $device ] : '';
+			if ( '' !== $value && null !== $value ) {
+				$vars[ '--wme-scale-' . $device ] = self::number( (int) $value / 100 );
+			}
+		}
 		if ( isset( $settings['size_mode'] ) && 'ratio' === $settings['size_mode'] ) {
 			// "16:9" => "16 / 9"; unset on tablet / mobile: as on the larger device.
 			$names = array(

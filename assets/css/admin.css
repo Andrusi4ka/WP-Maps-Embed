@@ -1,20 +1,114 @@
-/* WP Maps Embed edit screen: settings on the left, preview on the right. */
+/* WP Maps Embed edit screen, as WP Swiper's: the menu (a quarter of the box),
+   the chosen page beside it (another quarter), the preview in the other
+   half. Sized by the box, not the window (the screen's side column takes
+   its share). */
+#wp-map-embed-settings .inside {
+	container-type: inline-size;
+}
 
 .wp-map-embed-admin {
 	display: grid;
-	grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
-	gap: 24px;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 2fr);
+	gap: 16px;
 	align-items: start;
 }
 
-@media (max-width: 1280px) {
+/* Narrower: menu and page, the preview under them. */
+@container (max-width: 1000px) {
+	.wp-map-embed-admin {
+		grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+	}
+
+	.wp-map-embed-admin .wp-map-embed-admin__preview {
+		position: static;
+		grid-column: 1 / -1;
+	}
+}
+
+/* Phones: one column. */
+@container (max-width: 560px) {
 	.wp-map-embed-admin {
 		grid-template-columns: minmax(0, 1fr);
 	}
 }
 
+/* The menu: one item per page, the chosen one marked (as WP Swiper's). */
+.wp-map-embed-admin__menu {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.wp-map-embed-admin__menu-item {
+	position: relative;
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	width: 100%;
+	padding: 10px 12px;
+	border: 1px solid #dcdcde;
+	border-radius: 6px;
+	background: #fff;
+	color: #1d2327;
+	font: inherit;
+	font-weight: 600;
+	text-align: left;
+	cursor: pointer;
+}
+
+.wp-map-embed-admin__menu-item .dashicons {
+	color: #646970;
+}
+
+/* Chevron at the end: the page opens to the right. */
+.wp-map-embed-admin__menu-item::after {
+	content: "\f345";
+	margin-left: auto;
+	font: normal 16px/1 dashicons;
+	color: #a7aaad;
+}
+
+.wp-map-embed-admin__menu-item:hover {
+	border-color: #2271b1;
+	color: #2271b1;
+}
+
+.wp-map-embed-admin__menu-item[aria-current="true"] {
+	border-color: #2271b1;
+	background: #f0f6fc;
+	color: #2271b1;
+	box-shadow: inset 3px 0 0 #2271b1;
+}
+
+.wp-map-embed-admin__menu-item[aria-current="true"] .dashicons,
+.wp-map-embed-admin__menu-item[aria-current="true"]::after {
+	color: #2271b1;
+}
+
+.wp-map-embed-admin__menu-item:focus-visible {
+	outline: 2px solid #2271b1;
+	outline-offset: 1px;
+}
+
+/* Map's link is no map: a red dot by its title, seen from any page. */
+.wp-map-embed-admin__menu-item.has-error .wp-map-embed-admin__menu-title::after {
+	content: "";
+	display: inline-block;
+	width: 7px;
+	height: 7px;
+	margin: 0 0 2px 6px;
+	border-radius: 50%;
+	background: #d63638;
+	vertical-align: middle;
+}
+
+.wp-map-embed-admin__page[hidden] {
+	display: none;
+}
+
 .wp-map-embed-admin__group {
-	margin: 0 0 16px;
+	min-width: 0;
+	margin: 0;
 	padding: 4px 16px 12px;
 	border: 1px solid #dcdcde;
 	border-radius: 4px;
@@ -26,9 +120,10 @@
 	font-weight: 600;
 }
 
+/* The label over its field (the page is a narrow column). */
 .wp-map-embed-admin__row {
 	display: grid;
-	grid-template-columns: 180px minmax(0, 1fr);
+	grid-template-columns: minmax(0, 1fr);
 	gap: 4px 12px;
 	align-items: start;
 	padding: 10px 0;
@@ -91,30 +186,37 @@
 	display: none;
 }
 
-/* A per-device value (as in WP Swiper): on the left the label, its help icon
-   and the desktop / tablet / mobile icons; on the right the field. */
+/* A per-device value (as in WP Swiper): the label and its help icon on the
+   left, the desktop / tablet / mobile icons on the right, the field under
+   both (the control's parts placed in the row's own grid). */
 .wp-map-embed-admin__row--responsive {
-	align-items: end;
+	grid-template-columns: minmax(0, 1fr) auto;
+	align-items: center;
 }
 
-/* As tall as the field beside it: the label lines up with the field, not the icons over it. */
+.wp-map-embed-admin__row--responsive > .wp-map-embed-admin__control {
+	display: contents;
+}
+
+.wp-map-embed-admin__row--responsive .wp-map-embed-admin__responsive,
+.wp-map-embed-admin__row--responsive .description {
+	grid-column: 1 / -1;
+}
+
 .wp-map-embed-admin__head {
 	display: flex;
 	gap: 6px;
 	align-items: center;
-	min-height: 40px;
 }
 
 .wp-map-embed-admin__head .wp-map-embed-admin__label {
 	padding-top: 0;
 }
 
-/* Over the field, at its right end. */
 .wp-map-embed-admin__devices {
 	display: flex;
 	gap: 2px;
 	justify-content: flex-end;
-	margin-bottom: 4px;
 }
 
 .wp-map-embed-admin__row--responsive .wp-map-embed-admin__responsive {
@@ -235,9 +337,11 @@
 }
 
 /* Buttons of which one is chosen. */
+/* Equal parts across the narrow column; a long name wraps in its own part. */
 .wp-map-embed-admin__segmented {
-	display: inline-flex;
-	flex-wrap: wrap;
+	display: grid;
+	grid-auto-columns: minmax(0, 1fr);
+	grid-auto-flow: column;
 	border: 1px solid #8c8f94;
 	border-radius: 4px;
 	overflow: hidden;
@@ -256,10 +360,18 @@
 	opacity: 0;
 }
 
+.wp-map-embed-admin__segmented label {
+	display: flex;
+}
+
 .wp-map-embed-admin__segmented span {
-	display: block;
-	padding: 5px 10px;
+	display: flex;
+	flex: 1;
+	align-items: center;
+	justify-content: center;
+	padding: 5px 6px;
 	background: #fff;
+	text-align: center;
 	cursor: pointer;
 }
 
@@ -433,12 +545,6 @@
 	border: 1px solid #dcdcde;
 	border-radius: 4px;
 	background: #f6f7f7;
-}
-
-@media (max-width: 1280px) {
-	.wp-map-embed-admin__preview {
-		position: static;
-	}
 }
 
 /* Preview (WP_Map_Embed_Preview), as WP Swiper's: bar, note and the frame

@@ -63,11 +63,24 @@ class WP_Map_Embed_Admin {
 		$values = WP_Map_Embed_Settings::get( $post->ID );
 		wp_nonce_field( self::NONCE, self::NONCE . '_nonce' );
 
+		// As in WP Swiper: the menu on the left, the chosen page beside it
+		// (admin.js), the preview on the right.
 		echo '<div class="wp-map-embed-admin">';
+		echo '<nav class="wp-map-embed-admin__menu" aria-label="' . esc_attr__( 'Map settings', 'wp-map-embed' ) . '">';
+		foreach ( self::pages() as $page => $meta ) {
+			printf(
+				'<button type="button" class="wp-map-embed-admin__menu-item" data-page="%1$s" aria-controls="wp-map-embed-page-%1$s" aria-current="%2$s"><span class="dashicons %3$s" aria-hidden="true"></span><span class="wp-map-embed-admin__menu-title">%4$s</span></button>',
+				esc_attr( $page ),
+				'map' === $page ? 'true' : 'false',
+				esc_attr( $meta[1] ),
+				esc_html( $meta[0] )
+			);
+		}
+		echo '</nav>';
 		echo '<div class="wp-map-embed-admin__fields">';
 
 		// Map.
-		echo '<fieldset class="wp-map-embed-admin__group"><legend>' . esc_html__( 'Map', 'wp-map-embed' ) . '</legend>';
+		self::page_start( 'map' );
 		self::row_start( 'source', __( 'Address or embed code', 'wp-map-embed' ) );
 		printf(
 			'<textarea id="wp-map-embed-source" name="wp_map_embed[source]" rows="3" class="large-text" placeholder="%1$s">%2$s</textarea>',
@@ -120,7 +133,7 @@ class WP_Map_Embed_Admin {
 		echo '</fieldset>';
 
 		// Size.
-		echo '<fieldset class="wp-map-embed-admin__group"><legend>' . esc_html__( 'Size', 'wp-map-embed' ) . '</legend>';
+		self::page_start( 'size' );
 		self::row_start( 'size_mode', __( 'Size by', 'wp-map-embed' ) );
 		self::segmented(
 			'size_mode',
@@ -190,10 +203,20 @@ class WP_Map_Embed_Admin {
 		self::row_end();
 
 		self::responsive_px( 'radius', __( 'Corner radius', 'wp-map-embed' ), $values, 0, 100 );
+		self::responsive_px(
+			'scale',
+			__( 'Map scale', 'wp-map-embed' ),
+			$values,
+			60,
+			150,
+			'',
+			'%',
+			__( 'The size of everything on the map: names, roads, Google’s buttons. Under 100%: smaller, more of the area in view; over 100%: larger, a little blurred. The block keeps its size.', 'wp-map-embed' )
+		);
 		echo '</fieldset>';
 
 		// Stencil.
-		echo '<fieldset class="wp-map-embed-admin__group"><legend>' . esc_html__( 'Shape', 'wp-map-embed' ) . '</legend>';
+		self::page_start( 'shape' );
 		self::row_start( 'shape', __( 'SVG stencil', 'wp-map-embed' ), __( 'The map shows only through the shapes of an SVG file (all of them together), the page round them. Filled shapes count; outlines, lines and text are left out. Keep Google’s logo and the bottom edge of the map in the shape: Google’s terms do not allow hiding them.', 'wp-map-embed' ) );
 		self::shape_box( $values['shape'] );
 		self::row_end();
@@ -204,7 +227,7 @@ class WP_Map_Embed_Admin {
 		echo '</fieldset>';
 
 		// Cover.
-		echo '<fieldset class="wp-map-embed-admin__group"><legend>' . esc_html__( 'Click to activate', 'wp-map-embed' ) . '</legend>';
+		self::page_start( 'cover' );
 		self::row_start( 'activate', '' );
 		self::checkbox( 'activate', $values['activate'], __( 'Cover the map until it is clicked', 'wp-map-embed' ) );
 		echo '<p class="description">' . esc_html__( 'Visitors scroll past the map instead of zooming it by accident; a click makes it usable.', 'wp-map-embed' ) . '</p>';
@@ -279,6 +302,35 @@ class WP_Map_Embed_Admin {
 		echo '</div>';
 	}
 
+	/**
+	 * The pages of the settings, in the menu's order.
+	 *
+	 * @return array page => [ title, dashicon ].
+	 */
+	public static function pages() {
+		return array(
+			'map'   => array( __( 'Map', 'wp-map-embed' ), 'dashicons-location-alt' ),
+			'size'  => array( __( 'Size', 'wp-map-embed' ), 'dashicons-editor-expand' ),
+			'shape' => array( __( 'Shape', 'wp-map-embed' ), 'dashicons-star-filled' ),
+			'cover' => array( __( 'Click to activate', 'wp-map-embed' ), 'dashicons-visibility' ),
+		);
+	}
+
+	/**
+	 * A page of the settings: its fields' box, the first one shown until
+	 * admin.js shows the one chosen last. Closed with </fieldset>.
+	 *
+	 * @param string $page Page (pages()).
+	 */
+	private static function page_start( $page ) {
+		printf(
+			'<fieldset class="wp-map-embed-admin__group wp-map-embed-admin__page" id="wp-map-embed-page-%1$s" data-page="%1$s"%2$s><legend>%3$s</legend>',
+			esc_attr( $page ),
+			'map' === $page ? '' : ' hidden',
+			esc_html( self::pages()[ $page ][0] )
+		);
+	}
+
 	/** The devices in the order of a per-device value's keys (value, _tablet, _mobile). */
 	const DEVICE_KEYS = array( 'desktop', 'tablet', 'mobile' );
 
@@ -345,7 +397,7 @@ class WP_Map_Embed_Admin {
 	}
 
 	/**
-	 * A row of a px value per device (key, key_tablet, key_mobile): an empty
+	 * A row of a number per device (key, key_tablet, key_mobile): an empty
 	 * tablet / mobile field is as on the larger screen, 0 a value of its own.
 	 *
 	 * @param string $key     Field key (the desktop value).
@@ -354,9 +406,12 @@ class WP_Map_Embed_Admin {
 	 * @param int    $min     Least value.
 	 * @param int    $max     Greatest value.
 	 * @param string $depends The field this one only applies with (admin.js greys it).
+	 * @param string $unit    Unit shown after the field.
+	 * @param string $help    Help before the words on tablet and mobile.
 	 */
-	private static function responsive_px( $key, $label, $values, $min, $max, $depends = '' ) {
-		self::row_start( $key, $label, __( 'Empty on tablet or mobile: as on the larger screen.', 'wp-map-embed' ), $depends, true );
+	private static function responsive_px( $key, $label, $values, $min, $max, $depends = '', $unit = 'px', $help = '' ) {
+		$inherit = __( 'Empty on tablet or mobile: as on the larger screen.', 'wp-map-embed' );
+		self::row_start( $key, $label, '' !== $help ? $help . ' ' . $inherit : $inherit, $depends, true );
 		echo '<div class="wp-map-embed-admin__responsive">';
 		foreach ( array( $key, $key . '_tablet', $key . '_mobile' ) as $i => $name ) {
 			$device = self::DEVICE_KEYS[ $i ];
@@ -371,7 +426,7 @@ class WP_Map_Embed_Admin {
 				'desktop' === $device ? '' : ' hidden'
 			);
 		}
-		echo '<span class="wp-map-embed-admin__unit">px</span></div>';
+		echo '<span class="wp-map-embed-admin__unit">' . esc_html( $unit ) . '</span></div>';
 		self::row_end();
 	}
 

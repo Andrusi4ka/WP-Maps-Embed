@@ -122,6 +122,12 @@ class WP_Map_Embed_Settings {
 			// '' on tablet / mobile: as on the larger device (0 is a radius of its own).
 			'radius_tablet'   => '',
 			'radius_mobile'   => '',
+			// The size of everything on Google's map (names, roads, its buttons),
+			// %: the frame drawn larger or smaller and scaled to the block
+			// (frontend.css). '' on tablet / mobile: as on the larger device.
+			'scale'           => 100,
+			'scale_tablet'    => '',
+			'scale_mobile'    => '',
 			// The stencil: an SVG file's shapes (WP_Map_Embed_Svg_Shape, geometry
 			// only, JSON), the map seen through them; '' none. Fitted into the
 			// block at its proportions, at shape_position (SHAPE_POSITIONS).
@@ -178,6 +184,8 @@ class WP_Map_Embed_Settings {
 			'height_tablet'   => array( 0, $range[1] ),
 			'height_mobile'   => array( 0, $range[1] ),
 			'radius'          => array( 0, 100 ),
+			// Below 60% Google's buttons and its attribution get too small to read.
+			'scale'           => array( 60, 150 ),
 			'overlay_opacity' => array( 0, 100 ),
 			'icon_size'       => array( 16, 200 ),
 		);
@@ -196,6 +204,8 @@ class WP_Map_Embed_Settings {
 		$per_device = array(
 			'radius_tablet'    => $ints['radius'],
 			'radius_mobile'    => $ints['radius'],
+			'scale_tablet'     => $ints['scale'],
+			'scale_mobile'     => $ints['scale'],
 			'icon_size_tablet' => $ints['icon_size'],
 			'icon_size_mobile' => $ints['icon_size'],
 		);

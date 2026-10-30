@@ -111,10 +111,48 @@
 				return;
 			}
 			$box.find( '.wp-map-embed-admin__error' ).prop( 'hidden', ! info.invalid );
+			markError();
 			if ( info.shape ) {
 				shapeRead( info.shape );
 			}
 		} );
+
+		/*
+		 * The menu (as in WP Swiper): one page of the settings in view beside
+		 * it, the one chosen last kept for the next visit (this browser only).
+		 */
+		var PAGE_KEY = 'wpMapEmbedPage';
+		var $menu = $box.find( '.wp-map-embed-admin__menu-item' );
+
+		function showPage( page ) {
+			if ( ! $menu.filter( '[data-page="' + page + '"]' ).length ) {
+				return;
+			}
+			$menu.each( function () {
+				$( this ).attr( 'aria-current', $( this ).data( 'page' ) === page ? 'true' : 'false' );
+			} );
+			$box.find( '.wp-map-embed-admin__page' ).each( function () {
+				this.hidden = $( this ).data( 'page' ) !== page;
+			} );
+		}
+
+		$menu.on( 'click', function () {
+			var page = $( this ).data( 'page' );
+			showPage( page );
+			try {
+				window.localStorage.setItem( PAGE_KEY, page );
+			} catch ( e ) {}
+		} );
+
+		try {
+			showPage( window.localStorage.getItem( PAGE_KEY ) );
+		} catch ( e ) {}
+
+		// A link that is no map: a mark on Map in the menu, seen from the other pages too.
+		function markError() {
+			$menu.filter( '[data-page="map"]' ).toggleClass( 'has-error', ! $box.find( '.wp-map-embed-admin__error' ).prop( 'hidden' ) );
+		}
+		markError();
 
 		// The preview no longer shows these settings: the button says so.
 		function changed() {

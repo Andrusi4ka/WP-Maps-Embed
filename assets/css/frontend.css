@@ -74,12 +74,30 @@
 	height: 0;
 }
 
+/* Map scale (the size of everything on Google's map): the frame drawn larger
+   or smaller than its box by the factor, then scaled to fit it; clicks and
+   drags follow the scaling. Per device: unset, as on the larger screen. */
 .wp-map-embed__frame {
+	--wme-s: var(--wme-scale, 1);
 	display: block;
-	width: 100%;
-	height: 100%;
+	width: calc(100% / var(--wme-s));
+	height: calc(100% / var(--wme-s));
 	border: 0;
+	transform: scale(var(--wme-s));
+	transform-origin: 0 0;
 	transition: filter 0.4s;
+}
+
+@media (max-width: 1024px) {
+	.wp-map-embed__frame {
+		--wme-s: var(--wme-scale-tablet, var(--wme-scale, 1));
+	}
+}
+
+@media (max-width: 767px) {
+	.wp-map-embed__frame {
+		--wme-s: var(--wme-scale-mobile, var(--wme-scale-tablet, var(--wme-scale, 1)));
+	}
 }
 
 /* A deferred map has no frame to show until the click. */

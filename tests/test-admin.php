@@ -38,7 +38,7 @@ class Test_Admin extends WP_Map_Embed_TestCase {
 			$this->assertGreaterThanOrEqual( 1, substr_count( $html, 'name="wp_map_embed[' . $key . ']"' ), $key );
 		}
 		// One input per device of the per-device values.
-		foreach ( array( 'height', 'ratio', 'radius', 'icon_size' ) as $key ) {
+		foreach ( array( 'height', 'ratio', 'radius', 'scale', 'icon_size' ) as $key ) {
 			$this->assertStringContainsString( 'data-field="' . $key . '"', $html );
 			$this->assertSame( 1, substr_count( $html, 'name="wp_map_embed[' . $key . '_tablet]"' ), $key );
 		}
@@ -46,11 +46,38 @@ class Test_Admin extends WP_Map_Embed_TestCase {
 		$this->assertStringContainsString( 'wp-map-embed-preview__update', $html );
 	}
 
+	public function test_settings_box_menu_and_pages() {
+		$this->as_role( 'editor' );
+		$html = $this->settings_box( $this->map() );
+
+		$this->assertSame( array( 'map', 'size', 'shape', 'cover' ), array_keys( WP_Map_Embed_Admin::pages() ) );
+		foreach ( WP_Map_Embed_Admin::pages() as $page => $meta ) {
+			// An item in the menu for each page, and the page with its fields.
+			$this->assertStringContainsString( 'class="wp-map-embed-admin__menu-item" data-page="' . $page . '" aria-controls="wp-map-embed-page-' . $page . '"', $html );
+			$this->assertSame( 1, substr_count( $html, 'id="wp-map-embed-page-' . $page . '"' ), $page );
+		}
+		// The first page shown, the others until admin.js shows the one chosen last.
+		$this->assertStringContainsString( 'data-page="map" aria-controls="wp-map-embed-page-map" aria-current="true"', $html );
+		$this->assertStringContainsString( 'data-page="map"><legend>Map</legend>', $html );
+		$this->assertStringContainsString( 'data-page="cover" hidden><legend>Click to activate</legend>', $html );
+
+		// Each field on its page.
+		$pages = array(
+			'map'   => 'source',
+			'size'  => 'scale',
+			'shape' => 'shape_position',
+			'cover' => 'label',
+		);
+		foreach ( $pages as $page => $key ) {
+			$this->assertMatchesRegularExpression( '/id="wp-map-embed-page-' . $page . '"(?:(?!<\/fieldset>).)*name="wp_map_embed\[' . $key . '\]"/s', $html, $page );
+		}
+	}
+
 	public function test_settings_box_device_switcher() {
 		$this->as_role( 'editor' );
 		$html = $this->settings_box( $this->map() );
 
-		$this->assertSame( 4, substr_count( $html, 'class="wp-map-embed-admin__devices"' ) );
+		$this->assertSame( 5, substr_count( $html, 'class="wp-map-embed-admin__devices"' ) );
 		// The preview's own, with names.
 		$this->assertSame( 3, substr_count( $html, 'class="wp-map-embed-preview__device-btn"' ) );
 		// Desktop shown first, the others hidden until their icon is clicked.
