@@ -20,6 +20,26 @@
 		var $stage   = $preview.find( '.wp-map-embed-preview__stage' );
 		var $update  = $preview.find( '.wp-map-embed-preview__update' );
 		var previewFrame = $preview.find( '.wp-map-embed-preview__frame' )[ 0 ];
+		var resetMap = null;
+		var resetObserver = null;
+
+		function syncResetButton() {
+			$preview.find( '.wp-map-embed-preview__reset' ).prop( 'disabled',
+				! resetMap || ! resetMap.classList.contains( 'is-active' ) || ! resetMap.querySelector( '.wp-map-embed__cover' ) );
+		}
+
+		function watchPreviewMap() {
+			if ( resetObserver ) { resetObserver.disconnect(); }
+			resetMap = null;
+			try {
+				resetMap = previewFrame.contentDocument.querySelector( '.wp-map-embed' );
+			} catch ( e ) {}
+			if ( resetMap ) {
+				resetObserver = new MutationObserver( syncResetButton );
+				resetObserver.observe( resetMap, { attributes: true, attributeFilter: [ 'class' ] } );
+			}
+			syncResetButton();
+		}
 
 		function field( key ) {
 			return $box.find( '[name="wp_map_embed[' + key + ']"]' );
@@ -28,6 +48,97 @@
 		function checked( key ) {
 			return field( key ).is( ':checked' );
 		}
+
+		// A derived Maps URL for copying, never a separately saved setting.
+		function routeUrl( source ) {
+			source = $.trim( source || '' );
+			if ( /<iframe\b/i.test( source ) ) {
+				var doc = new DOMParser().parseFromString( source, 'text/html' );
+				var iframe = doc.querySelector( 'iframe' );
+				source = iframe ? $.trim( iframe.getAttribute( 'src' ) || '' ) : '';
+				if ( ! /^https:\/\//i.test( source ) ) { return ''; }
+			}
+			if ( ! source || /[<>]/.test( source ) ) {
+				return '';
+			}
+			var destination = source;
+			var placeId = '';
+			if ( /^https?:\/\//i.test( source ) ) {
+				var url;
+				try { url = new URL( source ); } catch ( e ) { return ''; }
+				if ( url.protocol !== 'https:' || ! /(^|\.)google\.[a-z]{2,3}(\.[a-z]{2})?$/i.test( url.hostname ) ||
+					url.pathname.indexOf( '/maps' ) !== 0 ||
+					( url.pathname.indexOf( '/maps/embed' ) !== 0 && url.searchParams.get( 'output' ) !== 'embed' ) ) {
+					return '';
+				}
+				destination = url.searchParams.get( 'destination' ) || url.searchParams.get( 'q' ) || '';
+				placeId = url.searchParams.get( 'destination_place_id' ) || '';
+				if ( destination.indexOf( 'place_id:' ) === 0 ) {
+					placeId = destination.slice( 9 );
+					destination = placeId;
+				}
+				if ( ! destination ) {
+					// Share > Embed uses an undocumented pb payload. Prefer the
+					// selected place's coordinates, never the viewport's center.
+					var pb = url.searchParams.get( 'pb' ) || '';
+					var point = /!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/.exec( pb );
+					var name = /!2s([^!]+)/.exec( pb );
+					if ( point && Math.abs( Number( point[ 1 ] ) ) <= 90 && Math.abs( Number( point[ 2 ] ) ) <= 180 ) {
+						destination = point[ 1 ] + ',' + point[ 2 ];
+					} else if ( name ) {
+						destination = name[ 1 ];
+					}
+				}
+			}
+			if ( ! $.trim( destination ) ) { return ''; }
+			var route = new URL( 'https://www.google.com/maps/dir/' );
+			route.searchParams.set( 'api', '1' );
+			route.searchParams.set( 'destination', destination );
+			if ( placeId ) { route.searchParams.set( 'destination_place_id', placeId ); }
+			return route.href.length <= 2048 ? route.href : '';
+		}
+
+		function updateRoute() {
+			var route = routeUrl( field( 'source' ).val() );
+			$box.find( '.wp-map-embed-admin__route' ).val( route ).prop( 'disabled', ! route );
+			$box.find( '.wp-map-embed-admin__route-copy' ).prop( 'disabled', ! route );
+			$box.find( '.wp-map-embed-admin__route-status' ).text( '' );
+		}
+
+		function fallbackCopy( text ) {
+			var focused = document.activeElement;
+			var input = document.createElement( 'textarea' );
+			input.value = text;
+			input.readOnly = true;
+			input.style.cssText = 'position:fixed;left:-9999px;top:0;';
+			document.body.appendChild( input );
+			var copied = false;
+			try {
+				input.select();
+				copied = document.execCommand( 'copy' );
+			} catch ( e ) {}
+			input.remove();
+			if ( focused ) { focused.focus( { preventScroll: true } ); }
+			return copied;
+		}
+
+		$box.on( 'click', '.wp-map-embed-admin__route-copy', function () {
+			var value = $box.find( '.wp-map-embed-admin__route' ).val();
+			if ( ! value ) { return; }
+			function report( copied ) {
+				if ( value !== $box.find( '.wp-map-embed-admin__route' ).val() ) { return; }
+				$box.find( '.wp-map-embed-admin__route-status' ).text( copied ? ( l10n.copied || 'Copied!' ) :
+					( l10n.copyFailed || 'Could not copy. Select the link and copy it manually.' ) );
+			}
+			if ( navigator.clipboard && navigator.clipboard.writeText ) {
+				navigator.clipboard.writeText( value ).then( function () { report( true ); }, function () { report( fallbackCopy( value ) ); } );
+			} else {
+				report( fallbackCopy( value ) );
+			}
+		} );
+		$box.on( 'input change', '[name="wp_map_embed[source]"]', updateRoute );
+		$box.on( 'click', '.wp-map-embed-admin__route', function () { this.select(); } );
+		updateRoute();
 
 		// As in WP Swiper: a field that does not apply now is hidden, and shows
 		// (under its switch, say) once it does. Hidden, not disabled: a
@@ -85,6 +196,9 @@
 			if ( ! previewFrame ) {
 				return;
 			}
+			if ( resetObserver ) { resetObserver.disconnect(); }
+			resetMap = null;
+			syncResetButton();
 			var $post = $( '<form method="post" hidden></form>' ).attr( {
 				action: $preview.data( 'url' ),
 				target: previewFrame.name,
@@ -108,6 +222,7 @@
 		// What the frame's page says (window.wpMapEmbedPreview): a link that is
 		// no map, and the stencil as the server read it.
 		$( previewFrame ).on( 'load', function () {
+			watchPreviewMap();
 			var info = null;
 			try {
 				info = previewFrame.contentWindow.wpMapEmbedPreview;
@@ -663,13 +778,14 @@
 				map = previewFrame.contentDocument.querySelector( '.wp-map-embed' );
 			} catch ( e ) {}
 			// The cover is in the block, or in its stencil.
-			if ( ! map || ! map.querySelector( '.wp-map-embed__cover' ) ) {
+			if ( ! map || ! map.classList.contains( 'is-active' ) || ! map.querySelector( '.wp-map-embed__cover' ) ) {
 				return;
 			}
 			if ( map.hasAttribute( 'data-defer' ) ) {
 				map.querySelector( '.wp-map-embed__frame' ).removeAttribute( 'src' );
 			}
 			map.classList.remove( 'is-active' );
+			syncResetButton();
 		} );
 
 		// Placeholder image.
@@ -701,6 +817,7 @@
 		} );
 
 		dependencies();
+		syncResetButton();
 		// The device kept from the last visit, and the preview drawn at once.
 		setDevice( currentDevice );
 		refresh();

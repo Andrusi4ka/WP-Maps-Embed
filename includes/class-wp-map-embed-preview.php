@@ -165,7 +165,7 @@ class WP_Map_Embed_Preview {
 			esc_attr__( 'Turn the tablet or phone sideways', 'wp-map-embed' ),
 			self::svg_icon( 'rotate.svg', 'wp-map-embed-preview__rotate-icon', 'dashicons-image-rotate' ) // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- the plugin's own SVG file.
 		);
-		echo '<button type="button" class="button wp-map-embed-preview__reset" title="' . esc_attr__( 'Show the cover again', 'wp-map-embed' ) . '"><span class="dashicons dashicons-hidden" aria-hidden="true"></span>' . esc_html__( 'Show the cover again', 'wp-map-embed' ) . '</button>';
+		echo '<button type="button" class="button wp-map-embed-preview__reset" disabled title="' . esc_attr__( 'Show the cover again', 'wp-map-embed' ) . '"><span class="dashicons dashicons-hidden" aria-hidden="true"></span>' . esc_html__( 'Show the cover again', 'wp-map-embed' ) . '</button>';
 
 		// The same device as the settings' per-device fields (admin.js).
 		echo '<div class="wp-map-embed-preview__devices" role="group" aria-label="' . esc_attr__( 'Device', 'wp-map-embed' ) . '">';
@@ -182,7 +182,7 @@ class WP_Map_Embed_Preview {
 		}
 		echo '</div>';
 
-		echo '<button type="button" class="button wp-map-embed-preview__update"><span class="dashicons dashicons-update" aria-hidden="true"></span>' . esc_html__( 'Update preview', 'wp-map-embed' ) . '</button>';
+		echo '<button type="button" class="button wp-map-embed-preview__update"><span class="dashicons dashicons-update" aria-hidden="true"></span>' . esc_html__( 'Update', 'wp-map-embed' ) . '</button>';
 		echo '</div>';
 
 		// A device turned sideways whose screen then takes another device's settings (admin.js shows it).

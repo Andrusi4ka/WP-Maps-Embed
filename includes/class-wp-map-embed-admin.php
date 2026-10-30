@@ -46,6 +46,7 @@ class WP_Map_Embed_Admin {
 					'frameTitle'  => __( 'Choose the placeholder image', 'wp-map-embed' ),
 					'frameButton' => __( 'Use this image', 'wp-map-embed' ),
 					'copied'      => __( 'Copied!', 'wp-map-embed' ),
+					'copyFailed'  => __( 'Could not copy. Select the link and copy it manually.', 'wp-map-embed' ),
 					'unsaved'     => __( 'The changes you made will be lost if you leave this page.', 'wp-map-embed' ),
 					'textColors' => WP_Map_Embed_Palette::tinymce_map(),
 					'colorPicker' => array(
@@ -103,16 +104,17 @@ class WP_Map_Embed_Admin {
 			esc_attr__( 'Street 1, City', 'wp-map-embed' ),
 			esc_textarea( $values['source'] )
 		);
-		echo '<p class="description">' . wp_kses(
-			__( 'Type an address or a place name, or paste the code from Google Maps: <em>Share → Embed a map → Copy HTML</em> (the whole <code>&lt;iframe&gt;</code> or just its link).', 'wp-map-embed' ),
-			array(
-				'em'   => array(),
-				'code' => array(),
-			)
-		) . '</p>';
 		// Shown for a saved link that is no map; after a change, by "Update preview".
 		$invalid = '' !== $values['source'] && '' === WP_Map_Embed_Settings::embed_url( $values );
 		echo '<p class="wp-map-embed-admin__error"' . ( $invalid ? '' : ' hidden' ) . '>' . esc_html__( 'This link cannot be shown on a page. In Google Maps use Share → Embed a map, or type the address instead.', 'wp-map-embed' ) . '</p>';
+		self::row_end();
+
+		self::row_start( 'route', __( 'Route', 'wp-map-embed' ) );
+		echo '<div class="wp-map-embed-admin__route-control">';
+		printf( '<input type="url" class="regular-text wp-map-embed-admin__route" value="" readonly disabled aria-label="%s">', esc_attr__( 'Route link', 'wp-map-embed' ) );
+		printf( '<button type="button" class="button wp-map-embed-admin__route-copy" disabled title="%1$s" aria-label="%1$s">%2$s</button>', esc_attr__( 'Copy route link', 'wp-map-embed' ), self::copy_icon() ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- static plugin SVG.
+		echo '</div>';
+		echo '<p class="description">' . esc_html__( 'Copy this link and use it for any button on your website. Clicking the button opens Google Maps with directions to this address.', 'wp-map-embed' ) . '</p>';
 		self::row_end();
 
 		self::row_start( 'zoom', __( 'Zoom', 'wp-map-embed' ), __( 'For an address. Google’s embed code keeps the zoom it was copied with.', 'wp-map-embed' ) );
@@ -360,8 +362,8 @@ class WP_Map_Embed_Admin {
 		return array(
 			'map'   => array( __( 'Map', 'wp-map-embed' ), 'dashicons-location-alt' ),
 			'size'  => array( __( 'Size', 'wp-map-embed' ), 'dashicons-editor-expand' ),
-			'appearance' => array( __( 'Appearance', 'wp-map-embed' ), 'dashicons-art' ),
 			'cover' => array( __( 'Click to activate', 'wp-map-embed' ), 'dashicons-visibility' ),
+			'appearance' => array( __( 'Appearance', 'wp-map-embed' ), 'dashicons-art' ),
 		);
 	}
 
@@ -435,7 +437,13 @@ class WP_Map_Embed_Admin {
 			echo '</span>';
 		} else {
 			if ( '' !== $label ) {
+				if ( 'route' === $key ) {
+					echo '<div class="wp-map-embed-admin__route-heading">';
+				}
 				echo '<span class="wp-map-embed-admin__label">' . esc_html( $label ) . '</span>';
+				if ( 'route' === $key ) {
+					echo '<span class="wp-map-embed-admin__route-status" role="status" aria-live="polite"></span></div>';
+				}
 			}
 			echo '<div class="wp-map-embed-admin__control">';
 		}
@@ -556,6 +564,16 @@ class WP_Map_Embed_Admin {
 			(int) $value,
 			'' === $unit ? '' : '<span class="wp-map-embed-admin__unit">' . esc_html( $unit ) . '</span>'
 		);
+	}
+
+	/** The same icon used for cloning slides in WP Swiper, bundled locally. */
+	private static function copy_icon() {
+		$path = dirname( __DIR__ ) . '/assets/images/copy-icon.svg';
+		if ( ! is_readable( $path ) ) {
+			return '<span class="dashicons dashicons-admin-page" aria-hidden="true"></span>';
+		}
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents -- fixed local asset.
+		return preg_replace( '/^<svg\b/', '<svg aria-hidden="true" focusable="false"', trim( (string) file_get_contents( $path ) ) );
 	}
 
 	private static function color( $key, $value, $default, $alpha = false ) {

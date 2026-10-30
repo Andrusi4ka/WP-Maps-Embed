@@ -1,3 +1,72 @@
+.wp-map-embed-admin__route-control {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.wp-map-embed-admin__route-control .regular-text {
+	flex: 1 1 0;
+	min-width: 0;
+	max-width: none;
+}
+
+.wp-map-embed-admin__route-control .wp-map-embed-admin__route-copy {
+	display: inline-flex;
+	flex: 0 0 auto;
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	min-height: 30px;
+	padding: 5px;
+}
+
+.wp-map-embed-admin__route-copy:not(:disabled) {
+	border-color: #2271b1;
+	background: transparent;
+	color: #2271b1;
+}
+
+.wp-map-embed-admin__route-copy:not(:disabled):hover,
+.wp-map-embed-admin__route-copy:not(:disabled):focus,
+.wp-map-embed-admin__route-copy:not(:disabled):active {
+	border-color: #2271b1;
+	background: transparent;
+	color: #2271b1;
+}
+
+.wp-map-embed-admin__route-copy:not(:disabled):focus {
+	box-shadow: 0 0 0 1px #2271b1;
+}
+
+.wp-map-embed-admin__route-control .wp-map-embed-admin__route-copy:disabled {
+	/* WordPress applies important colors to disabled buttons. */
+	border-color: #2271b1 !important;
+	background: transparent !important;
+	color: #2271b1 !important;
+	box-shadow: none;
+}
+
+.wp-map-embed-admin__route-copy svg {
+	width: 18px;
+	height: 18px;
+}
+
+.wp-map-embed-admin__route-heading {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 8px;
+}
+
+.wp-map-embed-admin__route-status {
+	font-size: 12px;
+	color: #646970;
+}
+
+.wp-map-embed-admin__route-status:empty {
+	display: none;
+}
+
 .wp-map-embed-admin__shadow-fields {
 	display: grid;
 	grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -261,6 +330,12 @@
 
 .wp-map-embed-admin__control .description {
 	margin: 6px 0 0;
+}
+
+/* Match the help text size in WP Swiper's settings and shortcode boxes. */
+#wp-map-embed-settings .description,
+#wp-map-embed-shortcode .description {
+	font-size: 12px;
 }
 
 .wp-map-embed-admin__error {
@@ -801,11 +876,26 @@
 	line-height: 1;
 }
 
-/* Settings changed since the preview was drawn: in the admin's blue. */
-.wp-map-embed-admin .wp-map-embed-preview__update.is-stale {
+/* Preview actions match the route copy button in every state. */
+.wp-map-embed-admin .button:is(.wp-map-embed-preview__update, .wp-map-embed-preview__reset),
+.wp-map-embed-admin .button:is(.wp-map-embed-preview__update, .wp-map-embed-preview__reset):is(:hover, :focus, :active) {
 	border-color: #2271b1;
-	background: #2271b1;
-	color: #fff;
+	background: transparent;
+	color: #2271b1;
+	box-shadow: none;
+}
+
+.wp-map-embed-admin .button:is(.wp-map-embed-preview__update, .wp-map-embed-preview__reset):focus {
+	box-shadow: 0 0 0 1px #2271b1;
+}
+
+.wp-map-embed-admin .button:is(.wp-map-embed-preview__update, .wp-map-embed-preview__reset):disabled {
+	border-color: #2271b1 !important;
+	background: transparent !important;
+	color: #2271b1 !important;
+	box-shadow: none;
+	opacity: 0.45;
+	cursor: default;
 }
 
 /* The note under the bar (a device turned sideways). */
