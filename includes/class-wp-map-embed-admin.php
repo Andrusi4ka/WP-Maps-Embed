@@ -229,8 +229,7 @@ class WP_Map_Embed_Admin {
 		// Cover.
 		self::page_start( 'cover' );
 		self::row_start( 'activate', '' );
-		self::checkbox( 'activate', $values['activate'], __( 'Cover the map until it is clicked', 'wp-map-embed' ) );
-		echo '<p class="description">' . esc_html__( 'Visitors scroll past the map instead of zooming it by accident; a click makes it usable.', 'wp-map-embed' ) . '</p>';
+		self::checkbox( 'activate', $values['activate'], __( 'Cover the map until it is clicked', 'wp-map-embed' ), __( 'Visitors scroll past the map instead of zooming it by accident; a click makes it usable.', 'wp-map-embed' ) );
 		self::row_end();
 
 		self::row_start( 'grayscale', '', '', 'activate' );
@@ -238,8 +237,7 @@ class WP_Map_Embed_Admin {
 		self::row_end();
 
 		self::row_start( 'defer', '', '', 'activate' );
-		self::checkbox( 'defer', $values['defer'], __( 'Load the map only after a click', 'wp-map-embed' ) );
-		echo '<p class="description">' . esc_html__( 'The page loads faster and Google gets nothing from visitors who do not open the map. Until the click the block shows its colour or the placeholder image.', 'wp-map-embed' ) . '</p>';
+		self::checkbox( 'defer', $values['defer'], __( 'Load the map only after a click', 'wp-map-embed' ), __( 'The page loads faster and Google gets nothing from visitors who do not open the map. Until the click the block shows its colour or the placeholder image.', 'wp-map-embed' ) );
 		self::row_end();
 
 		self::row_start( 'placeholder', __( 'Placeholder image', 'wp-map-embed' ), __( 'Shown until the click, for instance a screenshot of the map.', 'wp-map-embed' ), 'defer' );
@@ -453,13 +451,28 @@ class WP_Map_Embed_Admin {
 		echo '</div></div>';
 	}
 
-	private static function checkbox( $key, $checked, $label ) {
+	/**
+	 * A switch (as WP Swiper's: a checkbox drawn as one, admin.css), its help
+	 * behind an "i" icon beside it, not in the label (a click on the icon must
+	 * not toggle it).
+	 *
+	 * @param string $key     Field key.
+	 * @param bool   $checked On.
+	 * @param string $label   Label.
+	 * @param string $help    Help text ('' none).
+	 */
+	private static function checkbox( $key, $checked, $label, $help = '' ) {
+		echo '<div class="wp-map-embed-admin__switch">';
 		printf(
 			'<label><input type="checkbox" name="wp_map_embed[%1$s]" value="1"%2$s> %3$s</label>',
 			esc_attr( $key ),
 			checked( $checked, true, false ),
 			esc_html( $label )
 		);
+		if ( '' !== $help ) {
+			self::help_tip( $help );
+		}
+		echo '</div>';
 	}
 
 	/**

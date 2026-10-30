@@ -128,7 +128,6 @@
 	align-items: start;
 	padding: 10px 0;
 	border-top: 1px solid #f0f0f1;
-	transition: opacity 0.2s;
 }
 
 .wp-map-embed-admin__row:first-of-type {
@@ -145,10 +144,76 @@
 	font-weight: 600;
 }
 
-/* Does not apply now: greyed out, the value kept. */
-.wp-map-embed-admin__row.is-off {
-	opacity: 0.4;
-	pointer-events: none;
+/* Does not apply now (admin.js): hidden, the value kept. */
+.wp-map-embed-admin__row[hidden] {
+	display: none;
+}
+
+/* Switches instead of checkboxes (as WP Swiper's), the help icon beside. */
+.wp-map-embed-admin__switch {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.wp-map-embed-admin__switch label {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin: 0;
+	font-weight: 600;
+}
+
+.wp-map-embed-admin__switch input[type="checkbox"] {
+	position: relative;
+	flex: 0 0 auto;
+	width: 36px;
+	height: 20px;
+	margin: 0;
+	border: 0;
+	border-radius: 10px;
+	background: #c3c4c7;
+	box-shadow: none;
+	appearance: none;
+	transition: background-color 0.15s;
+	cursor: pointer;
+}
+
+/* The knob; also overrides WordPress's tick on checked boxes. */
+.wp-map-embed-admin__switch input[type="checkbox"]::before,
+.wp-map-embed-admin__switch input[type="checkbox"]:checked::before {
+	content: "";
+	position: absolute;
+	top: 2px;
+	left: 2px;
+	float: none;
+	width: 16px;
+	height: 16px;
+	margin: 0;
+	border-radius: 50%;
+	background: #fff;
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+	transition: transform 0.15s;
+}
+
+.wp-map-embed-admin__switch input[type="checkbox"]:checked {
+	background: #2271b1;
+}
+
+.wp-map-embed-admin__switch input[type="checkbox"]:checked::before {
+	transform: translateX(16px);
+}
+
+.wp-map-embed-admin__switch input[type="checkbox"]:focus-visible {
+	outline: 2px solid #2271b1;
+	outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.wp-map-embed-admin__switch input[type="checkbox"],
+	.wp-map-embed-admin__switch input[type="checkbox"]::before {
+		transition: none;
+	}
 }
 
 .wp-map-embed-admin__control .regular-text {
@@ -236,9 +301,14 @@
 	min-width: 72px;
 }
 
-/* Help text behind an "i" icon: shown on hover and keyboard focus. */
-.wp-map-embed-admin__tip {
+/* Help text behind an "i" icon: shown on hover and keyboard focus, as wide
+   as the field's row just under the icon (the row, not the icon, places it:
+   from the icon it would run out of the narrow column over the preview). */
+.wp-map-embed-admin__row {
 	position: relative;
+}
+
+.wp-map-embed-admin__tip {
 	display: inline-flex;
 	flex: 0 0 auto;
 	color: #a7aaad;
@@ -260,11 +330,12 @@
 .wp-map-embed-admin__tip::after {
 	content: attr(data-tip);
 	position: absolute;
-	top: calc(100% + 6px);
-	left: -8px;
+	/* Where the icon is, then down past it. */
+	top: auto;
+	right: 0;
+	left: 0;
 	z-index: 20;
-	width: max-content;
-	max-width: 240px;
+	margin-top: 22px;
 	padding: 8px 10px;
 	border-radius: 4px;
 	background: #1d2327;
@@ -478,12 +549,41 @@
 	flex: 1 1 160px;
 }
 
-.wp-map-embed-admin__shape-choose {
-	position: relative;
+/* Upload / Replace and Remove on one line, centred (as WP Swiper's). */
+.wp-map-embed-admin__shape-actions {
+	display: inline-flex;
+	align-items: center;
+	gap: 10px;
 }
 
-.wp-map-embed-admin__shape-choose:focus-within {
+.wp-map-embed-admin .button.wp-map-embed-admin__shape-choose {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	min-height: 30px;
+	line-height: 1;
+}
+
+.wp-map-embed-admin .button.wp-map-embed-admin__shape-choose:focus-within {
 	box-shadow: 0 0 0 2px #72aee6;
+}
+
+/* Remove: in red, as WP Swiper's (the stencil's and the placeholder's). */
+.wp-map-embed-admin .button-link.wp-map-embed-admin__shape-remove,
+.wp-map-embed-admin .button-link.wp-map-embed-admin__remove {
+	color: #b32d2e;
+}
+
+.wp-map-embed-admin .button-link.wp-map-embed-admin__shape-remove:hover,
+.wp-map-embed-admin .button-link.wp-map-embed-admin__remove:hover,
+.wp-map-embed-admin .button-link.wp-map-embed-admin__shape-remove:focus,
+.wp-map-embed-admin .button-link.wp-map-embed-admin__remove:focus {
+	color: #d63638;
+}
+
+.wp-map-embed-admin__shape-remove[hidden],
+.wp-map-embed-admin__remove[hidden] {
+	display: none;
 }
 
 /* Nine positions in a 3 × 3 grid, a dot each. */

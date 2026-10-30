@@ -29,15 +29,11 @@
 			return field( key ).is( ':checked' );
 		}
 
-		// Greyed out, not disabled: a disabled field is not sent, and its value would be lost.
+		// As in WP Swiper: a field that does not apply now is hidden, and shows
+		// (under its switch, say) once it does. Hidden, not disabled: a
+		// disabled field is not sent, and its value would be lost.
 		function setOff( key, off ) {
-			var $row = $box.find( '.wp-map-embed-admin__row[data-field="' + key + '"]' );
-			$row.toggleClass( 'is-off', off );
-			if ( off ) {
-				$row.attr( 'inert', '' );
-			} else {
-				$row.removeAttr( 'inert' );
-			}
+			$box.find( '.wp-map-embed-admin__row[data-field="' + key + '"]' ).prop( 'hidden', off );
 		}
 
 		// An address (zoom applies) rather than a link or Google's code: as

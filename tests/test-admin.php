@@ -73,6 +73,23 @@ class Test_Admin extends WP_Map_Embed_TestCase {
 		}
 	}
 
+	public function test_settings_box_switches() {
+		$this->as_role( 'editor' );
+		$html = $this->settings_box( $this->map( $this->settings( array( 'activate' => '1' ) ) ) );
+
+		// Every checkbox a switch, as in WP Swiper.
+		$this->assertSame( 3, substr_count( $html, 'type="checkbox"' ) );
+		$this->assertSame( 3, substr_count( $html, '<div class="wp-map-embed-admin__switch"><label><input type="checkbox"' ) );
+		$this->assertStringContainsString( 'name="wp_map_embed[activate]" value="1" checked=\'checked\'> Cover the map until it is clicked</label>', $html );
+		// Their help behind an "i" beside the label, not in it, and not under it.
+		$this->assertMatchesRegularExpression( '/Cover the map until it is clicked<\/label><span class="wp-map-embed-admin__tip"[^>]*data-tip="Visitors scroll past the map/', $html );
+		$this->assertMatchesRegularExpression( '/Load the map only after a click<\/label><span class="wp-map-embed-admin__tip"/', $html );
+		$this->assertStringNotContainsString( '<p class="description">Visitors scroll past', $html );
+		// What follows a switch says so (admin.js shows it while the switch is on).
+		$this->assertStringContainsString( 'data-field="grayscale" data-depends="activate"', $html );
+		$this->assertStringContainsString( 'data-field="placeholder" data-depends="defer"', $html );
+	}
+
 	public function test_settings_box_device_switcher() {
 		$this->as_role( 'editor' );
 		$html = $this->settings_box( $this->map() );
