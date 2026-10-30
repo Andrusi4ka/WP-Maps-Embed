@@ -330,6 +330,101 @@
 	object-fit: cover;
 }
 
+/* The stencil: its shapes in small, what the file gave, the buttons. */
+.wp-map-embed-admin__shape {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px 12px;
+	align-items: center;
+}
+
+.wp-map-embed-admin__shape-thumb {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 64px;
+	height: 64px;
+	padding: 6px;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	background: #fff;
+	box-sizing: border-box;
+}
+
+.wp-map-embed-admin__shape-thumb[hidden] {
+	display: none;
+}
+
+.wp-map-embed-admin__shape-thumb svg {
+	display: block;
+	max-width: 100%;
+	max-height: 100%;
+	fill: #2271b1;
+}
+
+.wp-map-embed-admin__shape-summary {
+	flex: 1 1 160px;
+}
+
+.wp-map-embed-admin__shape-choose {
+	position: relative;
+}
+
+.wp-map-embed-admin__shape-choose:focus-within {
+	box-shadow: 0 0 0 2px #72aee6;
+}
+
+/* Nine positions in a 3 × 3 grid, a dot each. */
+.wp-map-embed-admin__positions {
+	display: grid;
+	grid-template-columns: repeat(3, 24px);
+	gap: 2px;
+	width: max-content;
+	padding: 3px;
+	border: 1px solid #c3c4c7;
+	border-radius: 4px;
+	background: #fff;
+}
+
+.wp-map-embed-admin__positions label {
+	position: relative;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 24px;
+	height: 24px;
+	border-radius: 3px;
+	cursor: pointer;
+}
+
+.wp-map-embed-admin__positions input {
+	position: absolute;
+	opacity: 0;
+}
+
+.wp-map-embed-admin__positions span {
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: #a7aaad;
+}
+
+.wp-map-embed-admin__positions label:hover {
+	background: #f0f0f1;
+}
+
+.wp-map-embed-admin__positions input:checked + span {
+	width: 12px;
+	height: 12px;
+	border-radius: 2px;
+	background: #2271b1;
+}
+
+.wp-map-embed-admin__positions input:focus-visible + span {
+	outline: 2px solid #72aee6;
+	outline-offset: 2px;
+}
+
 /* In view while the settings scroll (below the admin bar). */
 .wp-map-embed-admin__preview {
 	position: sticky;
@@ -346,78 +441,193 @@
 	}
 }
 
-.wp-map-embed-admin__bar {
-	display: flex;
-	gap: 8px;
-	align-items: center;
-	justify-content: space-between;
-	margin-bottom: 10px;
-}
-
-.wp-map-embed-admin__actions {
+/* Preview (WP_Map_Embed_Preview), as WP Swiper's: bar, note and the frame
+   in its device, scaled to the column (admin.js fitPreview()). */
+.wp-map-embed-preview__bar {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 6px;
-	justify-content: flex-end;
+	align-items: center;
+	gap: 8px 12px;
+	margin-bottom: 12px;
 }
 
-/* The blue of the chosen buttons (WordPress's own primary blue is another). */
-.wp-map-embed-admin .button-primary.wp-map-embed-admin__update {
+.wp-map-embed-preview__title {
+	font-weight: 600;
+}
+
+/* Turn the device: an icon button right of the title, as tall as the bar's
+   buttons; greyed for Desktop, pressed while the tablet or phone is turned. */
+.wp-map-embed-admin .wp-map-embed-preview__rotate {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 32px;
+	min-height: 32px;
+	padding: 0 6px;
+	line-height: 1;
+}
+
+.wp-map-embed-preview__rotate-icon {
+	display: block;
+	width: 22px;
+	height: auto;
+}
+
+.wp-map-embed-admin .wp-map-embed-preview__rotate[aria-pressed="true"] {
 	border-color: #2271b1;
 	background: #2271b1;
 	color: #fff;
 }
 
-.wp-map-embed-admin .button-primary.wp-map-embed-admin__update:hover,
-.wp-map-embed-admin .button-primary.wp-map-embed-admin__update:focus {
-	border-color: #135e96;
-	background: #135e96;
-	color: #fff;
+/* "Show the cover again": right of the turn button, the rest on the right. */
+.wp-map-embed-admin .wp-map-embed-preview__reset {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	min-height: 32px;
+	margin-right: auto;
+	padding: 0 12px;
+	line-height: 1;
 }
 
-/* Outline in the same blue. */
-.wp-map-embed-admin .button.wp-map-embed-admin__reset {
+/* WordPress sets button icons to line-height 1.9, which drops them below the label. */
+.wp-map-embed-admin .wp-map-embed-preview__reset .dashicons,
+.wp-map-embed-admin .wp-map-embed-preview__update .dashicons {
+	width: 16px;
+	height: 16px;
+	font-size: 16px;
+	line-height: 1;
+	vertical-align: middle;
+	color: inherit;
+}
+
+/* Desktop / Tablet / Mobile with names, the one chosen outlined. */
+.wp-map-embed-preview__devices {
+	display: flex;
+	gap: 4px;
+	padding: 3px;
+	border: 1px solid #dcdcde;
+	border-radius: 6px;
+	background: #fff;
+}
+
+.wp-map-embed-preview__device-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 4px;
+	padding: 4px 10px;
+	border: 1px solid transparent;
+	border-radius: 4px;
+	background: none;
+	color: #50575e;
+	font: inherit;
+	cursor: pointer;
+}
+
+.wp-map-embed-preview__device-btn:hover {
+	color: #1d2327;
+}
+
+.wp-map-embed-preview__device-btn[aria-pressed="true"] {
 	border-color: #2271b1;
 	background: #fff;
 	color: #2271b1;
+	font-weight: 600;
 }
 
-.wp-map-embed-admin .button.wp-map-embed-admin__reset:hover,
-.wp-map-embed-admin .button.wp-map-embed-admin__reset:focus {
-	border-color: #135e96;
-	background: #f0f6fc;
-	color: #135e96;
+.wp-map-embed-preview__device-btn:focus-visible {
+	outline: 2px solid #2271b1;
+	outline-offset: 1px;
 }
 
-/* Settings changed since the preview was drawn. */
-.wp-map-embed-admin__update.is-stale::after {
-	content: "";
-	display: inline-block;
-	width: 6px;
-	height: 6px;
-	margin: 0 0 1px 6px;
-	border-radius: 50%;
+.wp-map-embed-preview__device-btn .dashicons {
+	width: 16px;
+	height: 16px;
+	font-size: 16px;
+}
+
+/* Icon and label centred on one line, as tall as the device buttons. */
+.wp-map-embed-admin .wp-map-embed-preview__update {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	min-height: 32px;
+	padding: 0 12px;
+	line-height: 1;
+}
+
+/* Settings changed since the preview was drawn: in the admin's blue. */
+.wp-map-embed-admin .wp-map-embed-preview__update.is-stale {
+	border-color: #2271b1;
+	background: #2271b1;
+	color: #fff;
+}
+
+/* The note under the bar (a device turned sideways). */
+.wp-map-embed-admin .wp-map-embed-preview__hint {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	margin: -6px 0 12px;
+}
+
+.wp-map-embed-admin .wp-map-embed-preview__hint[hidden] {
+	display: none;
+}
+
+.wp-map-embed-preview__hint .dashicons {
+	width: 16px;
+	height: 16px;
+	font-size: 16px;
+}
+
+.wp-map-embed-preview__stage {
+	position: relative;
+	overflow: hidden;
+}
+
+/* While the device turns (admin.js): all of it seen, past the stage too. */
+.wp-map-embed-preview__stage.is-turning {
+	z-index: 2;
+	overflow: visible;
+}
+
+/* Drawn at the device's size, scaled down to the column (admin.js). */
+.wp-map-embed-preview__frame {
+	position: absolute;
+	top: 0;
+	left: 0;
+	border: 0;
 	background: #fff;
-	vertical-align: middle;
+	box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+	transform-origin: 0 0;
 }
 
-.wp-map-embed-admin__empty {
-	margin: 0;
-	padding: 48px 16px;
-	border: 1px dashed #c3c4c7;
-	border-radius: 4px;
-	color: #646970;
-	text-align: center;
+/* In the device: the frame in its screen (its corners, admin.js), the drawing
+   over it, its camera or bar over the page as on a real one; clicks go through. */
+.wp-map-embed-preview--device .wp-map-embed-preview__frame {
+	box-shadow: none;
 }
 
-/* The preview shows the desktop size whatever the admin's width. */
-.wp-map-embed-admin__stage .wp-map-embed {
-	height: var(--wme-height, 450px);
+.wp-map-embed-preview__device {
+	position: absolute;
+	top: 0;
+	z-index: 1;
+	display: block;
+	max-width: none;
+	pointer-events: none;
+	user-select: none;
+	/* Turned sideways round this corner (admin.js). */
+	transform-origin: 0 0;
 }
 
-.wp-map-embed-admin__stage .wp-map-embed.wp-map-embed--ratio {
-	height: auto;
-	aspect-ratio: var(--wme-ratio, 16 / 9);
+.wp-map-embed-preview__device[hidden] {
+	display: none;
+}
+
+.wp-map-embed-preview > .description {
+	margin: 10px 0 0;
 }
 
 .wp-map-embed-shortcode {

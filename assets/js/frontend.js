@@ -26,7 +26,8 @@
 		var cover = event.target.closest && event.target.closest( '.wp-map-embed__cover' );
 		if ( cover ) {
 			event.preventDefault();
-			activate( cover.parentNode );
+			// The block, whether the cover is in it or in its stencil.
+			activate( cover.closest( '.wp-map-embed' ) );
 		}
 	} );
 
@@ -105,8 +106,8 @@
 
 	function init() {
 		[].forEach.call( document.querySelectorAll( '.wp-map-embed--fill' ), function ( map ) {
-			// The edit screen's preview has no block to fill.
-			if ( ! map.closest( '.wp-map-embed-admin' ) && ! map.hasAttribute( 'data-filled' ) ) {
+			// The edit screen's preview (its frame's page) has no block to fill.
+			if ( ! map.closest( '.wp-map-embed-admin, .wp-map-embed-preview-page' ) && ! map.hasAttribute( 'data-filled' ) ) {
 				map.setAttribute( 'data-filled', '' );
 				fill( map );
 			}

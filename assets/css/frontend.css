@@ -46,6 +46,34 @@
 	box-sizing: border-box;
 }
 
+/* The stencil (an SVG file's shapes, WP_Map_Embed_Render::shape()): the map
+   and its cover only inside them, the page showing round them. Its box is
+   as large as the block allows at the shapes' proportions (as "contain"),
+   placed by --wme-shape-x / -y; the clip path scales with the box. The
+   corner radius does not apply: the shapes are the outline. */
+.wp-map-embed.wp-map-embed--shape {
+	container-type: size;
+	border-radius: 0;
+	background: none;
+}
+
+.wp-map-embed__shape {
+	--wme-shape-w: min(100cqw, 100cqh * var(--wme-shape-ratio, 1));
+	position: absolute;
+	top: calc((100cqh - var(--wme-shape-w) / var(--wme-shape-ratio, 1)) * var(--wme-shape-y, 0.5));
+	left: calc((100cqw - var(--wme-shape-w)) * var(--wme-shape-x, 0.5));
+	width: var(--wme-shape-w);
+	height: calc(var(--wme-shape-w) / var(--wme-shape-ratio, 1));
+	background: #e5e3df var(--wme-placeholder, none) center / cover no-repeat;
+}
+
+.wp-map-embed__clip {
+	position: absolute;
+	overflow: hidden;
+	width: 0;
+	height: 0;
+}
+
 .wp-map-embed__frame {
 	display: block;
 	width: 100%;

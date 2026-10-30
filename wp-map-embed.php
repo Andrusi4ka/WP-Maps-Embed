@@ -42,9 +42,11 @@ function wp_map_embed_asset_version( $path ) {
 	return $time ? WP_MAP_EMBED_VERSION . '.' . $time : WP_MAP_EMBED_VERSION;
 }
 
+require_once WP_MAP_EMBED_DIR . 'includes/class-wp-map-embed-svg-shape.php';
 require_once WP_MAP_EMBED_DIR . 'includes/class-wp-map-embed-settings.php';
 require_once WP_MAP_EMBED_DIR . 'includes/class-wp-map-embed-render.php';
 require_once WP_MAP_EMBED_DIR . 'includes/class-wp-map-embed-admin.php';
+require_once WP_MAP_EMBED_DIR . 'includes/class-wp-map-embed-preview.php';
 require_once WP_MAP_EMBED_DIR . 'includes/class-wp-map-embed-wpbakery.php';
 
 /**
@@ -117,4 +119,5 @@ add_action( 'plugins_loaded', 'wp_map_embed_updates' );
 
 WP_Map_Embed_Render::init();
 WP_Map_Embed_Admin::init();
+WP_Map_Embed_Preview::init();
 WP_Map_Embed_WPBakery::init();

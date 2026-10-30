@@ -109,14 +109,83 @@ class WP_Map_Embed_Render {
 			);
 		}
 
+		$inside = $frame . $cover;
+		$style  = self::style( $settings, $defer );
+		$shape  = self::shape( $settings );
+		if ( $shape ) {
+			$classes[] = 'wp-map-embed--shape';
+			$style    .= $shape['style'];
+			// The map and its cover in the stencil, cut by its shapes.
+			$inside = sprintf(
+				'<div class="wp-map-embed__shape" style="%1$s">%2$s</div>%3$s',
+				esc_attr( '-webkit-clip-path:url(#' . $shape['id'] . ');clip-path:url(#' . $shape['id'] . ')' ),
+				$inside,
+				$shape['clip']
+			);
+		}
+
 		return sprintf(
-			'<div class="%1$s" style="%2$s"%3$s>%4$s%5$s</div>',
+			'<div class="%1$s" style="%2$s"%3$s>%4$s</div>',
 			esc_attr( implode( ' ', $classes ) ),
-			esc_attr( self::style( $settings, $defer ) ),
+			esc_attr( $style ),
 			$defer ? ' data-defer' : '',
-			$frame,
-			$cover
+			$inside
 		);
+	}
+
+	/** Stencils rendered in this request (their clip paths' ids). */
+	private static $shapes = 0;
+
+	/**
+	 * The stencil: the SVG file's shapes, with its margins left out, as one
+	 * clip path in numbers of the stencil's own box (objectBoundingBox), so
+	 * it scales with the box and no script is needed. frontend.css fits the
+	 * box into the block at the shapes' proportions (--wme-shape-ratio) and
+	 * places it (--wme-shape-x / -y). The shapes together are the stencil:
+	 * the map shows through all of them.
+	 *
+	 * @param array $settings Map settings.
+	 * @return array|null { id, clip: SVG markup, style: CSS variables }; null without a shape.
+	 */
+	public static function shape( $settings ) {
+		$data = WP_Map_Embed_Svg_Shape::decode( isset( $settings['shape'] ) ? $settings['shape'] : '' );
+		if ( ! $data ) {
+			return null;
+		}
+		$frame = WP_Map_Embed_Svg_Shape::frame( $data, true );
+		$ratio = (float) $frame['ratio'];
+		if ( $ratio <= 0 ) {
+			return null;
+		}
+
+		$id    = 'wp-map-embed-shape-' . ( ++self::$shapes );
+		$paths = '';
+		foreach ( $frame['shapes'] as $shape ) {
+			$paths .= sprintf( '<path d="%1$s" clip-rule="%2$s"/>', esc_attr( $shape['d'] ), esc_attr( $shape['rule'] ) );
+		}
+		$position = isset( $settings['shape_position'], WP_Map_Embed_Settings::SHAPE_POSITIONS[ $settings['shape_position'] ] )
+			? WP_Map_Embed_Settings::SHAPE_POSITIONS[ $settings['shape_position'] ]
+			: WP_Map_Embed_Settings::SHAPE_POSITIONS['center center'];
+
+		return array(
+			'id'    => $id,
+			'clip'  => sprintf(
+				'<svg class="wp-map-embed__clip" width="0" height="0" aria-hidden="true" focusable="false"><clipPath id="%1$s" clipPathUnits="objectBoundingBox">%2$s</clipPath></svg>',
+				esc_attr( $id ),
+				$paths
+			),
+			'style' => '--wme-shape-ratio:' . self::number( $ratio ) . ';--wme-shape-x:' . self::number( $position[0] ) . ';--wme-shape-y:' . self::number( $position[1] ) . ';',
+		);
+	}
+
+	/**
+	 * A number for CSS: a dot for decimals whatever the locale, no trailing zeros.
+	 *
+	 * @param float $value Number.
+	 * @return string
+	 */
+	private static function number( $value ) {
+		return rtrim( rtrim( number_format( (float) $value, 5, '.', '' ), '0' ), '.' );
 	}
 
 	/**

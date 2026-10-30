@@ -15,7 +15,6 @@ class WP_Map_Embed_Admin {
 		add_action( 'add_meta_boxes_' . WP_Map_Embed_Settings::POST_TYPE, array( __CLASS__, 'add_meta_boxes' ) );
 		add_action( 'save_post_' . WP_Map_Embed_Settings::POST_TYPE, array( __CLASS__, 'save' ) );
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue' ) );
-		add_action( 'wp_ajax_wp_map_embed_preview', array( __CLASS__, 'ajax_preview' ) );
 
 		add_filter( 'manage_' . WP_Map_Embed_Settings::POST_TYPE . '_posts_columns', array( __CLASS__, 'columns' ) );
 		add_action( 'manage_' . WP_Map_Embed_Settings::POST_TYPE . '_posts_custom_column', array( __CLASS__, 'column_content' ), 10, 2 );
@@ -37,19 +36,24 @@ class WP_Map_Embed_Admin {
 		if ( in_array( $hook, array( 'post.php', 'post-new.php' ), true ) ) {
 			wp_enqueue_media();
 			wp_enqueue_style( 'wp-color-picker' );
-			// The preview is the map as the page shows it.
-			wp_enqueue_style( 'wp-map-embed', WP_MAP_EMBED_URL . 'assets/css/frontend.css', array(), wp_map_embed_asset_version( 'assets/css/frontend.css' ) );
-			wp_enqueue_script( 'wp-map-embed', WP_MAP_EMBED_URL . 'assets/js/frontend.js', array(), wp_map_embed_asset_version( 'assets/js/frontend.js' ), true );
-			wp_enqueue_script( 'wp-map-embed-admin', WP_MAP_EMBED_URL . 'assets/js/admin.js', array( 'jquery', 'wp-color-picker', 'wp-map-embed' ), wp_map_embed_asset_version( 'assets/js/admin.js' ), true );
+			// The preview is a frame of its own (WP_Map_Embed_Preview) with the site's files.
+			wp_enqueue_script( 'wp-map-embed-admin', WP_MAP_EMBED_URL . 'assets/js/admin.js', array( 'jquery', 'wp-color-picker' ), wp_map_embed_asset_version( 'assets/js/admin.js' ), true );
 			wp_localize_script(
 				'wp-map-embed-admin',
 				'wpMapEmbedAdmin',
 				array(
-					'ajaxUrl'     => admin_url( 'admin-ajax.php' ),
-					'nonce'       => wp_create_nonce( 'wp_map_embed_preview' ),
 					'frameTitle'  => __( 'Choose the placeholder image', 'wp-map-embed' ),
 					'frameButton' => __( 'Use this image', 'wp-map-embed' ),
 					'copied'      => __( 'Copied!', 'wp-map-embed' ),
+					'shapeMax'    => WP_Map_Embed_Svg_Shape::MAX_BYTES,
+					'shapeUpload' => __( 'Upload SVG', 'wp-map-embed' ),
+					'shapeReplace' => __( 'Replace SVG', 'wp-map-embed' ),
+					/* translators: %s: file name. */
+					'shapeRead'   => __( '%s: reading…', 'wp-map-embed' ),
+					'shapeNone'   => WP_Map_Embed_Svg_Shape::summary( null ),
+					'shapeTooBig' => __( 'The file is over 1 MB.', 'wp-map-embed' ),
+					'shapeNotSvg' => __( 'That is not an SVG file.', 'wp-map-embed' ),
+					'shapeFailed' => __( 'No filled shapes found in that file.', 'wp-map-embed' ),
 				)
 			);
 		}
@@ -188,6 +192,17 @@ class WP_Map_Embed_Admin {
 		self::responsive_px( 'radius', __( 'Corner radius', 'wp-map-embed' ), $values, 0, 100 );
 		echo '</fieldset>';
 
+		// Stencil.
+		echo '<fieldset class="wp-map-embed-admin__group"><legend>' . esc_html__( 'Shape', 'wp-map-embed' ) . '</legend>';
+		self::row_start( 'shape', __( 'SVG stencil', 'wp-map-embed' ), __( 'The map shows only through the shapes of an SVG file (all of them together), the page round them. Filled shapes count; outlines, lines and text are left out. Keep Google’s logo and the bottom edge of the map in the shape: Google’s terms do not allow hiding them.', 'wp-map-embed' ) );
+		self::shape_box( $values['shape'] );
+		self::row_end();
+
+		self::row_start( 'shape_position', __( 'Shape position', 'wp-map-embed' ), __( 'The shape keeps its proportions and fits the block; where their proportions differ, this is where it sits.', 'wp-map-embed' ), 'shape' );
+		self::positions( 'shape_position', $values['shape_position'] );
+		self::row_end();
+		echo '</fieldset>';
+
 		// Cover.
 		echo '<fieldset class="wp-map-embed-admin__group"><legend>' . esc_html__( 'Click to activate', 'wp-map-embed' ) . '</legend>';
 		self::row_start( 'activate', '' );
@@ -257,22 +272,9 @@ class WP_Map_Embed_Admin {
 
 		echo '</div>';
 
-		// Beside the fields: the map as these settings draw it (admin.js refreshes it).
-		echo '<div class="wp-map-embed-admin__preview">';
-		echo '<div class="wp-map-embed-admin__bar"><strong>' . esc_html__( 'Preview', 'wp-map-embed' ) . '</strong><span class="wp-map-embed-admin__actions">';
-		echo '<button type="button" class="button button-small wp-map-embed-admin__reset">' . esc_html__( 'Show the cover again', 'wp-map-embed' ) . '</button>';
-		// The preview follows the settings on this click only (one request, not one per change).
-		echo '<button type="button" class="button button-primary button-small wp-map-embed-admin__update">' . esc_html__( 'Update preview', 'wp-map-embed' ) . '</button>';
-		echo '</span></div>';
-		$markup = WP_Map_Embed_Render::markup( $values, $post->post_title );
-		printf(
-			'<div class="wp-map-embed-admin__stage">%1$s</div><p class="wp-map-embed-admin__empty"%2$s>%3$s</p>',
-			$markup, // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in markup().
-			'' === $markup ? '' : ' hidden',
-			esc_html__( 'Type an address or paste Google’s embed code to see the map.', 'wp-map-embed' )
-		);
-		echo '<p class="description">' . esc_html__( 'As on a desktop; “Parent block” with the Height, as the preview has no column to fill. Click the map to try the cover.', 'wp-map-embed' ) . '</p>';
-		echo '</div>';
+		// Beside the fields: the map as these settings draw it, in a monitor,
+		// tablet or phone (admin.js posts the form into it).
+		WP_Map_Embed_Preview::render_panel( $post );
 
 		echo '</div>';
 	}
@@ -446,6 +448,79 @@ class WP_Map_Embed_Admin {
 		);
 	}
 
+	/**
+	 * The stencil's field: the shapes kept (geometry only, JSON) in a hidden
+	 * input; the button reads a file into it as { name, svg } (admin.js),
+	 * read on the server when the preview updates or the map is saved. The
+	 * file is not uploaded to the media library.
+	 *
+	 * @param string $value The shapes kept.
+	 */
+	private static function shape_box( $value ) {
+		$shape = WP_Map_Embed_Svg_Shape::decode( $value );
+		printf(
+			'<input type="hidden" name="wp_map_embed[shape]" value="%1$s"><div class="wp-map-embed-admin__shape"><span class="wp-map-embed-admin__shape-thumb"%2$s>%3$s</span><span class="wp-map-embed-admin__shape-summary">%4$s</span><span class="wp-map-embed-admin__shape-actions"><label class="button wp-map-embed-admin__shape-choose"><span>%5$s</span><input type="file" accept=".svg,image/svg+xml" class="screen-reader-text"></label> <button type="button" class="button-link wp-map-embed-admin__shape-remove"%6$s>%7$s</button></span></div>',
+			esc_attr( $shape ? $value : '' ),
+			$shape ? '' : ' hidden',
+			$shape ? self::shape_thumb( $shape ) : '', // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- built from checked numbers, escaped there.
+			esc_html( WP_Map_Embed_Svg_Shape::summary( $shape ) ),
+			$shape ? esc_html__( 'Replace SVG', 'wp-map-embed' ) : esc_html__( 'Upload SVG', 'wp-map-embed' ),
+			$shape ? '' : ' hidden',
+			esc_html__( 'Remove', 'wp-map-embed' )
+		);
+	}
+
+	/**
+	 * The stencil in small: its shapes as drawn, the file's margins left out.
+	 *
+	 * @param array $data WP_Map_Embed_Svg_Shape::decode().
+	 * @return string SVG markup.
+	 */
+	public static function shape_thumb( $data ) {
+		$frame = WP_Map_Embed_Svg_Shape::frame( $data, true );
+		$paths = '';
+		foreach ( $frame['shapes'] as $shape ) {
+			$paths .= sprintf( '<path d="%1$s" fill-rule="%2$s"/>', esc_attr( $shape['d'] ), esc_attr( $shape['rule'] ) );
+		}
+		// Numbers of the shapes' box (0–1 each way), drawn at its proportions.
+		return sprintf(
+			'<svg viewBox="0 0 1 1" preserveAspectRatio="none" style="aspect-ratio:%1$s" aria-hidden="true" focusable="false">%2$s</svg>',
+			esc_attr( (string) max( 0.1, (float) $frame['ratio'] ) ),
+			$paths
+		);
+	}
+
+	/**
+	 * Nine positions in a 3 × 3 grid (radio buttons).
+	 *
+	 * @param string $key   Field key.
+	 * @param string $value Chosen position (WP_Map_Embed_Settings::SHAPE_POSITIONS).
+	 */
+	private static function positions( $key, $value ) {
+		$names = array(
+			'left top'      => __( 'Top left', 'wp-map-embed' ),
+			'center top'    => __( 'Top', 'wp-map-embed' ),
+			'right top'     => __( 'Top right', 'wp-map-embed' ),
+			'left center'   => __( 'Left', 'wp-map-embed' ),
+			'center center' => __( 'Center', 'wp-map-embed' ),
+			'right center'  => __( 'Right', 'wp-map-embed' ),
+			'left bottom'   => __( 'Bottom left', 'wp-map-embed' ),
+			'center bottom' => __( 'Bottom', 'wp-map-embed' ),
+			'right bottom'  => __( 'Bottom right', 'wp-map-embed' ),
+		);
+		echo '<div class="wp-map-embed-admin__positions" role="radiogroup">';
+		foreach ( $names as $position => $name ) {
+			printf(
+				'<label title="%3$s"><input type="radio" name="wp_map_embed[%1$s]" value="%2$s" aria-label="%3$s"%4$s><span aria-hidden="true"></span></label>',
+				esc_attr( $key ),
+				esc_attr( $position ),
+				esc_attr( $name ),
+				checked( $value, $position, false )
+			);
+		}
+		echo '</div>';
+	}
+
 	public static function render_shortcode_box( $post ) {
 		if ( 'auto-draft' === $post->post_status ) {
 			echo '<p>' . esc_html__( 'Save the map to get its shortcode.', 'wp-map-embed' ) . '</p>';
@@ -475,30 +550,9 @@ class WP_Map_Embed_Admin {
 		}
 
 		$settings = isset( $_POST['wp_map_embed'] ) ? (array) wp_unslash( $_POST['wp_map_embed'] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized field by field.
-		update_post_meta( $post_id, WP_Map_Embed_Settings::META, WP_Map_Embed_Settings::sanitize( $settings ) );
-	}
-
-	/**
-	 * The preview for the settings on the screen, saved or not.
-	 */
-	public static function ajax_preview() {
-		check_ajax_referer( 'wp_map_embed_preview', 'nonce' );
-		$post_id = isset( $_POST['post_id'] ) ? absint( $_POST['post_id'] ) : 0;
-		if ( ! $post_id || ! current_user_can( 'edit_post', $post_id ) ) {
-			wp_send_json_error( null, 403 );
-		}
-
-		$raw      = isset( $_POST['wp_map_embed'] ) ? (array) wp_unslash( $_POST['wp_map_embed'] ) : array(); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitized field by field.
-		$settings = WP_Map_Embed_Settings::sanitize( $raw );
-		$title    = isset( $_POST['title'] ) ? sanitize_text_field( wp_unslash( $_POST['title'] ) ) : '';
-
-		wp_send_json_success(
-			array(
-				'html'    => WP_Map_Embed_Render::markup( $settings, $title ),
-				// Something typed that is no map: a link that cannot be embedded.
-				'invalid' => '' !== $settings['source'] && '' === WP_Map_Embed_Settings::embed_url( $settings ),
-			)
-		);
+		// Slashed: update_post_meta() unslashes, and the stencil's JSON (or a
+		// text with a backslash) must keep its backslashes.
+		update_post_meta( $post_id, WP_Map_Embed_Settings::META, wp_slash( WP_Map_Embed_Settings::sanitize( $settings ) ) );
 	}
 
 	public static function columns( $columns ) {

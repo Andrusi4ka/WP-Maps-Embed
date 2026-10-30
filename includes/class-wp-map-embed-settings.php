@@ -37,6 +37,22 @@ class WP_Map_Embed_Settings {
 	const RATIOS = array( '21:9', '16:9', '3:2', '4:3', '1:1', '3:4', '9:16' );
 
 	/**
+	 * Where the stencil sits in the block when their proportions differ:
+	 * position => [ x, y ], each 0 (left / top) to 1 (right / bottom).
+	 */
+	const SHAPE_POSITIONS = array(
+		'left top'      => array( 0, 0 ),
+		'center top'    => array( 0.5, 0 ),
+		'right top'     => array( 1, 0 ),
+		'left center'   => array( 0, 0.5 ),
+		'center center' => array( 0.5, 0.5 ),
+		'right center'  => array( 1, 0.5 ),
+		'left bottom'   => array( 0, 1 ),
+		'center bottom' => array( 0.5, 1 ),
+		'right bottom'  => array( 1, 1 ),
+	);
+
+	/**
 	 * Languages of the map's labels: Google's code => name in that language.
 	 * '' (as copied, else the visitor's browser) and 'site' come first in the list.
 	 *
@@ -106,6 +122,11 @@ class WP_Map_Embed_Settings {
 			// '' on tablet / mobile: as on the larger device (0 is a radius of its own).
 			'radius_tablet'   => '',
 			'radius_mobile'   => '',
+			// The stencil: an SVG file's shapes (WP_Map_Embed_Svg_Shape, geometry
+			// only, JSON), the map seen through them; '' none. Fitted into the
+			// block at its proportions, at shape_position (SHAPE_POSITIONS).
+			'shape'           => '',
+			'shape_position'  => 'center center',
 			// The cover over the map until a click: the page scrolls past the map
 			// instead of zooming it.
 			'activate'        => true,
@@ -202,6 +223,10 @@ class WP_Map_Embed_Settings {
 		foreach ( array( 'ratio_tablet', 'ratio_mobile' ) as $key ) {
 			$out[ $key ] = isset( $raw[ $key ] ) && in_array( $raw[ $key ], self::RATIOS, true ) ? $raw[ $key ] : '';
 		}
+
+		// The file's text from the edit screen ({ name, svg }), or the shapes kept.
+		$out['shape']          = WP_Map_Embed_Svg_Shape::sanitize( isset( $raw['shape'] ) && is_scalar( $raw['shape'] ) ? (string) $raw['shape'] : '' );
+		$out['shape_position'] = isset( $raw['shape_position'] ) && isset( self::SHAPE_POSITIONS[ $raw['shape_position'] ] ) ? $raw['shape_position'] : $defaults['shape_position'];
 
 		$out['icon']  = isset( $raw['icon'] ) && in_array( $raw['icon'], self::ICONS, true ) ? $raw['icon'] : $defaults['icon'];
 		$out['label'] = isset( $raw['label'] ) ? sanitize_text_field( $raw['label'] ) : '';
