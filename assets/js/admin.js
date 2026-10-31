@@ -352,10 +352,15 @@
 			$pick.data( 'pickrSync', false );
 			// What Cancel goes back to.
 			pickr.applyColor( true );
+			pickr.getRoot().app.style.setProperty( '--wme-opacity-color', $pick.data( 'hex' ) );
 		}
 
 		function setColor( $pick, hex, alpha ) {
 			$pick.data( { hex: hex, alpha: alpha } );
+			var pickr = $pick.data( 'pickr' );
+			if ( pickr ) {
+				pickr.getRoot().app.style.setProperty( '--wme-opacity-color', hex );
+			}
 			paintColor( $pick );
 		}
 

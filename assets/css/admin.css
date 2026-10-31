@@ -1088,6 +1088,11 @@
 	height: 11em;
 }
 
+.pcr-app.wp-map-embed-pcr[data-theme="classic"] .pcr-selection .pcr-color-opacity .pcr-slider {
+	background-image: linear-gradient(to bottom, transparent, var(--wme-opacity-color, #000)), conic-gradient(#fff 25%, #808080 0 50%, #fff 0 75%, #808080 0);
+	background-size: 100%, 8px 8px;
+}
+
 .pcr-app.wp-map-embed-pcr .pcr-interaction .pcr-result {
 	flex: 1 0 100%;
 	height: 2.6em;
