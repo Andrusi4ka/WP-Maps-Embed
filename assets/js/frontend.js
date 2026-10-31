@@ -61,8 +61,50 @@
 		return map.offsetHeight;
 	}
 
+	function autoHeight( map ) {
+		if ( getComputedStyle( map ).getPropertyValue( '--wme-auto-active' ).trim() !== '1' ) {
+			map.style.height = '';
+			return;
+		}
+		var box = fillBox( map );
+		map.style.height = '0px';
+		var boxStyle = getComputedStyle( box );
+		var available = box.clientHeight - ( parseFloat( boxStyle.paddingTop ) || 0 ) - ( parseFloat( boxStyle.paddingBottom ) || 0 );
+		var branch = map;
+		while ( branch && branch !== box ) {
+			var style = getComputedStyle( branch );
+			available -= ( parseFloat( style.marginTop ) || 0 ) + ( parseFloat( style.marginBottom ) || 0 );
+			var parent = branch.parentElement;
+			if ( ! parent ) { break; }
+			var parentStyle = getComputedStyle( parent );
+			var horizontal = parentStyle.display.indexOf( 'flex' ) !== -1 && parentStyle.flexDirection.indexOf( 'row' ) === 0;
+			var grid = parentStyle.display.indexOf( 'grid' ) !== -1;
+			var siblings = 0;
+			if ( ! horizontal && ! grid ) {
+				[].forEach.call( parent.children, function ( child ) {
+					if ( child === branch ) { return; }
+					var css = getComputedStyle( child );
+					if ( css.display === 'none' || css.position === 'absolute' || css.position === 'fixed' ) { return; }
+					available -= child.getBoundingClientRect().height + ( parseFloat( css.marginTop ) || 0 ) + ( parseFloat( css.marginBottom ) || 0 );
+					siblings++;
+				} );
+				if ( parentStyle.display.indexOf( 'flex' ) !== -1 ) {
+					available -= siblings * ( parseFloat( parentStyle.rowGap ) || 0 );
+				}
+			}
+			if ( parent !== box ) {
+				available -= ( parseFloat( parentStyle.paddingTop ) || 0 ) + ( parseFloat( parentStyle.paddingBottom ) || 0 ) +
+					( parseFloat( parentStyle.borderTopWidth ) || 0 ) + ( parseFloat( parentStyle.borderBottomWidth ) || 0 );
+			}
+			branch = parent;
+		}
+		// Without an independent parent height, retain the saved height.
+		map.style.height = available > 0 ? Math.floor( available ) + 'px' : '';
+	}
+
 	function fill( map ) {
 		var queued = false;
+		var fitHeight = map.classList.contains( 'wp-map-embed--auto' ) ? autoHeight : fillHeight;
 
 		function refit() {
 			if ( queued ) {
@@ -71,11 +113,11 @@
 			queued = true;
 			requestAnimationFrame( function () {
 				queued = false;
-				fillHeight( map );
+				fitHeight( map );
 			} );
 		}
 
-		fillHeight( map );
+		fitHeight( map );
 		window.addEventListener( 'resize', refit );
 		window.addEventListener( 'load', refit );
 
@@ -90,6 +132,7 @@
 			var observer = new ResizeObserver( refit );
 
 			observer.observe( row );
+			if ( map.classList.contains( 'wp-map-embed--auto' ) ) { observer.observe( box ); }
 			[].forEach.call( row.querySelectorAll( '.wpb_wrapper, .vc_column-inner > *' ), function ( node ) {
 				if ( ! node.contains( map ) && ! map.contains( node ) ) {
 					observer.observe( node );
@@ -105,9 +148,10 @@
 	}
 
 	function init() {
-		[].forEach.call( document.querySelectorAll( '.wp-map-embed--fill' ), function ( map ) {
+		[].forEach.call( document.querySelectorAll( '.wp-map-embed--fill, .wp-map-embed--auto' ), function ( map ) {
 			// The edit screen's preview (its frame's page) has no block to fill.
-			if ( ! map.closest( '.wp-map-embed-admin, .wp-map-embed-preview-page' ) && ! map.hasAttribute( 'data-filled' ) ) {
+			var skipPreview = ! map.classList.contains( 'wp-map-embed--auto' ) && map.closest( '.wp-map-embed-preview-page' );
+			if ( ! map.closest( '.wp-map-embed-admin' ) && ! skipPreview && ! map.hasAttribute( 'data-filled' ) ) {
 				map.setAttribute( 'data-filled', '' );
 				fill( map );
 			}

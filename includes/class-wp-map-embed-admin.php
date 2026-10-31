@@ -122,7 +122,7 @@ class WP_Map_Embed_Admin {
 		self::row_end();
 
 		echo '</div><div class="wp-map-embed-admin__block">';
-		self::row_start( 'map_type', __( 'Map type', 'wp-map-embed' ), __( 'Satellite comes with street and place names. “As copied”: the view of Google’s embed code; for an address, Map.', 'wp-map-embed' ) );
+		self::row_start( 'map_type', __( 'Map type', 'wp-map-embed' ), __( 'Satellite comes with street and place names. “As copied”: the view of Google’s embed code; for an address, Map.', 'wp-map-embed' ), '', false, true );
 		self::segmented(
 			'map_type',
 			$values['map_type'],
@@ -134,7 +134,7 @@ class WP_Map_Embed_Admin {
 		);
 		self::row_end();
 
-		self::row_start( 'language', __( 'Language', 'wp-map-embed' ), __( 'Of the names and labels on the map. “As copied”: the language of Google’s embed code; for an address, the visitor’s browser.', 'wp-map-embed' ) );
+		self::row_start( 'language', __( 'Language', 'wp-map-embed' ), __( 'Of the names and labels on the map. “As copied”: the language of Google’s embed code; for an address, the visitor’s browser.', 'wp-map-embed' ), '', false, true );
 		echo '<select name="wp_map_embed[language]">';
 		$languages = array_merge(
 			array(
@@ -160,42 +160,31 @@ class WP_Map_Embed_Admin {
 			array(
 				'height' => __( 'Height', 'wp-map-embed' ),
 				'ratio'  => __( 'Proportions', 'wp-map-embed' ),
-				'fill'   => __( 'Parent block', 'wp-map-embed' ),
 			)
 		);
-		echo '<p class="description" data-mode="fill">' . esc_html__( 'The map takes the free height of its column: in a WPBakery row, as tall as the column beside it (less the column’s padding and other content). Where that is under 120px — a column alone in its row, columns stacked on phones — it takes the Height below.', 'wp-map-embed' ) . '</p>';
 		self::row_end();
 
-		self::row_start( 'height', __( 'Height', 'wp-map-embed' ), __( 'px, or vh: % of the window’s height. Empty on tablet or mobile: as on the larger screen.', 'wp-map-embed' ), '', true );
+		self::row_start( 'height', __( 'Height', 'wp-map-embed' ), __( 'Choose a height and unit for each device. px: pixels; %: percentage of the parent height (requires a parent with a defined height); vh: percentage of the viewport height; vw: percentage of the viewport width; dvh: percentage of the current visible viewport height, adjusting as the browser address bar appears or hides on mobile. 100dvh fills that height. Auto: fills the available parent space. Empty height inherits the larger screen’s complete height; Inherit uses its unit.', 'wp-map-embed' ), '', true );
 		echo '<div class="wp-map-embed-admin__responsive">';
-		$range = WP_Map_Embed_Settings::HEIGHT_UNITS[ $values['height_unit'] ];
-		foreach ( array( 'height', 'height_tablet', 'height_mobile' ) as $i => $key ) {
-			$device = self::DEVICE_KEYS[ $i ];
+		foreach ( array( 'desktop', 'tablet', 'mobile' ) as $device ) {
+			$key = 'desktop' === $device ? 'height' : 'height_' . $device;
+			$unit_key = 'desktop' === $device ? 'height_unit' : 'height_unit_' . $device;
+			$range = WP_Map_Embed_Settings::HEIGHT_UNITS[ WP_Map_Embed_Settings::height_unit_for( $values, $device ) ];
 			printf(
-				// Empty tablet / mobile: admin.js shows the inherited height as the
-				// placeholder. Not "required" on desktop: hidden, it could not say so.
 				'<input type="number" class="wp-map-embed-admin__device-input" data-device="%1$s" name="wp_map_embed[%2$s]" value="%3$s" min="%4$d" max="%5$d" step="1" aria-label="%6$s"%7$s>',
-				esc_attr( $device ),
-				esc_attr( $key ),
-				esc_attr( $values[ $key ] ? $values[ $key ] : '' ),
-				(int) $range[0],
-				(int) $range[1],
-				esc_attr( __( 'Height', 'wp-map-embed' ) . ' — ' . self::devices()[ $device ][0] ),
-				'desktop' === $device ? '' : ' hidden'
+				esc_attr( $device ), esc_attr( $key ), esc_attr( $values[ $key ] ? $values[ $key ] : '' ), (int) $range[0], (int) $range[1],
+				esc_attr( __( 'Height', 'wp-map-embed' ) . ' — ' . self::devices()[ $device ][0] ), 'desktop' === $device ? '' : ' hidden'
 			);
+			printf( '<select class="wp-map-embed-admin__device-input wp-map-embed-admin__height-unit" data-device="%1$s" name="wp_map_embed[%2$s]" aria-label="%3$s"%4$s>', esc_attr( $device ), esc_attr( $unit_key ), esc_attr( __( 'Unit', 'wp-map-embed' ) . ' — ' . self::devices()[ $device ][0] ), 'desktop' === $device ? '' : ' hidden' );
+			if ( 'desktop' !== $device ) {
+				echo '<option value="">' . esc_html__( 'Inherit', 'wp-map-embed' ) . '</option>';
+			}
+			foreach ( WP_Map_Embed_Settings::HEIGHT_UNITS as $unit => $limits ) {
+				printf( '<option value="%1$s" data-min="%2$d" data-max="%3$d"%4$s>%5$s</option>', esc_attr( $unit ), (int) $limits[0], (int) $limits[1], selected( $values[ $unit_key ], $unit, false ), 'auto' === $unit ? esc_html__( 'Auto', 'wp-map-embed' ) : esc_html( $unit ) );
+			}
+			echo '</select>';
 		}
-		// The unit, shared by all devices; admin.js sets the fields' limits for it.
-		echo '<select name="wp_map_embed[height_unit]" aria-label="' . esc_attr__( 'Unit', 'wp-map-embed' ) . '">';
-		foreach ( WP_Map_Embed_Settings::HEIGHT_UNITS as $unit => $limits ) {
-			printf(
-				'<option value="%1$s" data-min="%2$d" data-max="%3$d"%4$s>%1$s</option>',
-				esc_attr( $unit ),
-				(int) $limits[0],
-				(int) $limits[1],
-				selected( $values['height_unit'], $unit, false )
-			);
-		}
-		echo '</select></div>';
+		echo '</div>';
 		self::row_end();
 
 		self::row_start( 'ratio', __( 'Proportions', 'wp-map-embed' ), __( 'Width : height.', 'wp-map-embed' ), '', true );
@@ -214,9 +203,18 @@ class WP_Map_Embed_Admin {
 				echo '<option value="">' . esc_html__( 'Inherit', 'wp-map-embed' ) . '</option>';
 			}
 			foreach ( WP_Map_Embed_Settings::RATIOS as $ratio ) {
-				printf( '<option value="%1$s"%2$s>%1$s</option>', esc_attr( $ratio ), selected( $values[ $key ], $ratio, false ) );
+				printf( '<option value="%1$s"%2$s>%3$s</option>', esc_attr( $ratio ), selected( $values[ $key ], $ratio, false ), 'custom' === $ratio ? esc_html__( 'Custom', 'wp-map-embed' ) : esc_html( $ratio ) );
 			}
 			echo '</select>';
+		}
+		echo '</div>';
+		self::row_end();
+
+		self::row_start( 'ratio_custom', __( 'Custom proportions', 'wp-map-embed' ), __( 'Width x height, for example 4x3 or 2.35x1.', 'wp-map-embed' ), '', true );
+		echo '<div class="wp-map-embed-admin__responsive">';
+		foreach ( array( 'ratio_custom', 'ratio_custom_tablet', 'ratio_custom_mobile' ) as $i => $key ) {
+			$device = self::DEVICE_KEYS[ $i ];
+			printf( '<input type="text" class="wp-map-embed-admin__device-input wp-map-embed-admin__ratio-custom" data-device="%1$s" name="wp_map_embed[%2$s]" value="%3$s" placeholder="4x3" inputmode="text" autocomplete="off" spellcheck="false" aria-label="%4$s"%5$s>', esc_attr( $device ), esc_attr( $key ), esc_attr( $values[ $key ] ), esc_attr( __( 'Custom proportions', 'wp-map-embed' ) . ' — ' . self::devices()[ $device ][0] ), 'desktop' === $device ? '' : ' hidden' );
 		}
 		echo '</div>';
 		self::row_end();
@@ -240,18 +238,20 @@ class WP_Map_Embed_Admin {
 		// Appearance applies to the outer block, including when a stencil is used.
 		self::page_start( 'appearance' );
 		self::row_start( 'rounded', '' );
-		self::checkbox( 'rounded', $values['rounded'], __( 'Rounded corners', 'wp-map-embed' ), '' );
+		self::checkbox( 'rounded', $values['rounded'], __( 'Rounded corners', 'wp-map-embed' ), __( 'Empty on tablet or mobile: as on the larger screen.', 'wp-map-embed' ) );
 		self::row_end();
-		self::responsive_px( 'radius', __( 'Corner radius', 'wp-map-embed' ), $values, 0, 100, 'rounded' );
+		self::responsive_px( 'radius', __( 'Corner radius', 'wp-map-embed' ), $values, 0, 100, 'rounded', 'px', '', false );
 		self::row_start( 'border', '' );
-		self::checkbox( 'border', $values['border'], __( 'Border', 'wp-map-embed' ), '' );
+		self::checkbox( 'border', $values['border'], __( 'Border', 'wp-map-embed' ), __( 'Empty on tablet or mobile: as on the larger screen.', 'wp-map-embed' ) );
 		self::row_end();
-		self::responsive_px( 'border_width', __( 'Border width', 'wp-map-embed' ), $values, 0, 50, 'border' );
+		echo '<div class="wp-map-embed-admin__border-fields">';
+		self::responsive_px( 'border_width', __( 'Width (px)', 'wp-map-embed' ), $values, 0, 50, 'border', '', '', false );
+		self::row_start( 'border_color', __( 'Color', 'wp-map-embed' ), '', 'border' );
+		self::color( 'border_color', $values['border_color'], '#ffffff', true );
+		self::row_end();
+		echo '</div>';
 		self::row_start( 'border_style', __( 'Border style', 'wp-map-embed' ), '', 'border' );
 		self::segmented( 'border_style', $values['border_style'], array( 'solid' => __( 'Solid', 'wp-map-embed' ), 'dashed' => __( 'Dashed', 'wp-map-embed' ), 'dotted' => __( 'Dotted', 'wp-map-embed' ), 'double' => __( 'Double', 'wp-map-embed' ) ) );
-		self::row_end();
-		self::row_start( 'border_color', __( 'Border color', 'wp-map-embed' ), '', 'border' );
-		self::color( 'border_color', $values['border_color'], '#ffffff', true );
 		self::row_end();
 		self::row_start( 'shadow', '' );
 		self::checkbox( 'shadow', $values['shadow'], __( 'Shadow', 'wp-map-embed' ), '' );
@@ -268,14 +268,24 @@ class WP_Map_Embed_Admin {
 		self::row_end();
 		// Stencil is the final option in Appearance.
 		self::row_start( 'shape_enabled', '' );
-		self::checkbox( 'shape_enabled', $values['shape_enabled'], __( 'Shape', 'wp-map-embed' ), '' );
+		self::checkbox( 'shape_enabled', $values['shape_enabled'], __( 'Shape', 'wp-map-embed' ), __( 'The map shows only through the shapes of an SVG file (all of them together), the page round them. Filled shapes count; outlines, lines and text are left out. Keep Google’s logo and the bottom edge of the map in the shape: Google’s terms do not allow hiding them.', 'wp-map-embed' ) );
 		self::row_end();
-		self::row_start( 'shape', __( 'SVG stencil', 'wp-map-embed' ), __( 'The map shows only through the shapes of an SVG file (all of them together), the page round them. Filled shapes count; outlines, lines and text are left out. Keep Google’s logo and the bottom edge of the map in the shape: Google’s terms do not allow hiding them.', 'wp-map-embed' ) );
+		self::row_start( 'shape', __( 'SVG stencil', 'wp-map-embed' ) );
 		self::shape_box( $values['shape'] );
 		self::row_end();
 
-		self::row_start( 'shape_position', __( 'Shape position', 'wp-map-embed' ), __( 'The shape keeps its proportions and fits the block; where their proportions differ, this is where it sits.', 'wp-map-embed' ), 'shape' );
-		self::positions( 'shape_position', $values['shape_position'] );
+		self::row_start( 'shape_position', __( 'Shape position', 'wp-map-embed' ), '', 'shape', true );
+		echo '<div class="wp-map-embed-admin__responsive">';
+		foreach ( array( 'desktop', 'tablet', 'mobile' ) as $device ) {
+			$key = 'shape_position' . ( 'desktop' === $device ? '' : '_' . $device );
+			echo '<div class="wp-map-embed-admin__device-input" data-device="' . esc_attr( $device ) . '">';
+			if ( 'desktop' !== $device ) {
+				echo '<label><input type="radio" name="wp_map_embed[' . esc_attr( $key ) . ']" value=""' . checked( $values[ $key ], '', false ) . '> ' . esc_html__( 'Inherit', 'wp-map-embed' ) . '</label>';
+			}
+			self::positions( $key, $values[ $key ] );
+			echo '</div>';
+		}
+		echo '</div>';
 		self::row_end();
 		echo '</div></fieldset>';
 
@@ -310,7 +320,7 @@ class WP_Map_Embed_Admin {
 		self::row_end();
 
 		self::row_start( 'icon_enabled', '' );
-		self::checkbox( 'icon_enabled', $values['icon_enabled'], __( 'Icon', 'wp-map-embed' ), '' );
+		self::checkbox( 'icon_enabled', $values['icon_enabled'], __( 'Icon', 'wp-map-embed' ), __( 'Empty on tablet or mobile: as on the larger screen.', 'wp-map-embed' ) );
 		self::row_end();
 		self::row_start( 'icon', __( 'Icon type', 'wp-map-embed' ), '', 'icon_enabled' );
 		echo '<div class="wp-map-embed-admin__icons" role="radiogroup">';
@@ -330,16 +340,17 @@ class WP_Map_Embed_Admin {
 		echo '</div>';
 		self::row_end();
 
-		self::row_start( 'icon_color', __( 'Icon colour', 'wp-map-embed' ), __( 'Empty: the theme’s primary colour.', 'wp-map-embed' ), 'icon' );
+		echo '<div class="wp-map-embed-admin__icon-fields">';
+		self::responsive_px( 'icon_size', __( 'Size (px)', 'wp-map-embed' ), $values, 16, 200, 'icon', '', '', false );
+		self::row_start( 'icon_color', __( 'Color', 'wp-map-embed' ), '', 'icon' );
 		self::color( 'icon_color', $values['icon_color'], '', true );
 		self::row_end();
-
-		self::responsive_px( 'icon_size', __( 'Icon size', 'wp-map-embed' ), $values, 16, 200, 'icon' );
+		echo '</div>';
 
 		self::row_start( 'text_enabled', '' );
-		self::checkbox( 'text_enabled', $values['text_enabled'], __( 'Text', 'wp-map-embed' ), '' );
+		self::checkbox( 'text_enabled', $values['text_enabled'], __( 'Text', 'wp-map-embed' ), __( 'Under the icon, for example “Click to open the map”. Empty: no text.', 'wp-map-embed' ) );
 		self::row_end();
-		self::row_start( 'label', __( 'Text', 'wp-map-embed' ), __( 'Under the icon, for example “Click to open the map”. Empty: no text.', 'wp-map-embed' ), 'text_enabled' );
+		self::row_start( 'label', __( 'Text', 'wp-map-embed' ), '', 'text_enabled' );
 		printf( '<input type="text" class="regular-text" name="wp_map_embed[label]" value="%s">', esc_attr( $values['label'] ) );
 		self::row_end();
 		echo '</div></fieldset>';
@@ -406,7 +417,7 @@ class WP_Map_Embed_Admin {
 	 * @param bool   $devices A value per device: the desktop / tablet / mobile
 	 *                        switcher by the label shows one device's field at a time.
 	 */
-	private static function row_start( $key, $label, $help = '', $depends = '', $devices = false ) {
+	private static function row_start( $key, $label, $help = '', $depends = '', $devices = false, $tooltip = false ) {
 		printf(
 			'<div class="wp-map-embed-admin__row%1$s" data-field="%2$s"%3$s>',
 			$devices ? ' wp-map-embed-admin__row--responsive' : '',
@@ -436,6 +447,13 @@ class WP_Map_Embed_Admin {
 			// The control stays open for the field (row_end() closes it).
 			echo '</span>';
 		} else {
+			if ( $tooltip && '' !== $help ) {
+				echo '<div class="wp-map-embed-admin__head"><span class="wp-map-embed-admin__label">' . esc_html( $label ) . '</span>';
+				self::help_tip( $help );
+				echo '</div>';
+				$label = '';
+				$help = '';
+			}
 			if ( '' !== $label ) {
 				if ( 'route' === $key ) {
 					echo '<div class="wp-map-embed-admin__route-heading">';
@@ -465,10 +483,11 @@ class WP_Map_Embed_Admin {
 	 * @param string $depends The field this one only applies with (admin.js greys it).
 	 * @param string $unit    Unit shown after the field.
 	 * @param string $help    Help before the words on tablet and mobile.
+	 * @param bool   $show_help Whether to show the help beside this field.
 	 */
-	private static function responsive_px( $key, $label, $values, $min, $max, $depends = '', $unit = 'px', $help = '' ) {
+	private static function responsive_px( $key, $label, $values, $min, $max, $depends = '', $unit = 'px', $help = '', $show_help = true ) {
 		$inherit = __( 'Empty on tablet or mobile: as on the larger screen.', 'wp-map-embed' );
-		self::row_start( $key, $label, '' !== $help ? $help . ' ' . $inherit : $inherit, $depends, true );
+		self::row_start( $key, $label, $show_help ? ( '' !== $help ? $help . ' ' . $inherit : $inherit ) : '', $depends, true );
 		echo '<div class="wp-map-embed-admin__responsive">';
 		foreach ( array( $key, $key . '_tablet', $key . '_mobile' ) as $i => $name ) {
 			$device = self::DEVICE_KEYS[ $i ];

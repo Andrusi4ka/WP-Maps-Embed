@@ -28,13 +28,17 @@ class WP_Map_Embed_Settings {
 		'px' => array( 50, 2000 ),
 		// Of the window's height.
 		'vh' => array( 10, 100 ),
+		'%'  => array( 1, 100 ),
+		'vw' => array( 1, 100 ),
+		'dvh' => array( 1, 100 ),
+		'auto' => array( 50, 2000 ),
 	);
 
 	/** How the map's height is set. */
-	const SIZE_MODES = array( 'height', 'ratio', 'fill' );
+	const SIZE_MODES = array( 'height', 'ratio' );
 
 	/** Proportions, width:height. */
-	const RATIOS = array( '21:9', '16:9', '3:2', '4:3', '1:1', '3:4', '9:16' );
+	const RATIOS = array( '21:9', '16:9', '3:2', '4:3', '1:1', '3:4', '9:16', 'custom' );
 
 	/**
 	 * Where the stencil sits in the block when their proportions differ:
@@ -113,9 +117,14 @@ class WP_Map_Embed_Settings {
 			'ratio'           => '16:9',
 			'ratio_tablet'    => '',
 			'ratio_mobile'    => '',
+			'ratio_custom'    => '4x3',
+			'ratio_custom_tablet' => '',
+			'ratio_custom_mobile' => '',
 			// In height_unit; 0 on tablet / mobile: as on the larger device.
 			'height'          => 450,
 			'height_unit'     => 'px',
+			'height_unit_tablet' => '',
+			'height_unit_mobile' => '',
 			'height_tablet'   => 0,
 			'height_mobile'   => 0,
 			// Existing maps keep their rounded corners until explicitly switched off.
@@ -149,6 +158,8 @@ class WP_Map_Embed_Settings {
 			'shape_enabled'   => false,
 			'shape'           => '',
 			'shape_position'  => 'center center',
+			'shape_position_tablet' => '',
+			'shape_position_mobile' => '',
 			// The cover over the map until a click: the page scrolls past the map
 			// instead of zooming it.
 			'grayscale'       => true,
@@ -178,6 +189,9 @@ class WP_Map_Embed_Settings {
 	 */
 	public static function get( $post_id ) {
 		$saved = get_post_meta( $post_id, self::META, true );
+		if ( is_array( $saved ) ) {
+			$saved = self::migrate_height_mode( $saved );
+		}
 		if ( is_array( $saved ) && ! array_key_exists( 'text_enabled', $saved ) ) {
 			$saved['text_enabled'] = isset( $saved['label'] ) && '' !== trim( (string) $saved['label'] );
 		}
@@ -208,6 +222,7 @@ class WP_Map_Embed_Settings {
 	 * @return array
 	 */
 	public static function sanitize( $raw ) {
+		$raw = self::migrate_height_mode( $raw );
 		$defaults = self::defaults();
 		$out      = array();
 
@@ -219,8 +234,6 @@ class WP_Map_Embed_Settings {
 		$ints = array(
 			'zoom'            => array( 1, 21 ),
 			'height'          => $range,
-			'height_tablet'   => array( 0, $range[1] ),
-			'height_mobile'   => array( 0, $range[1] ),
 			'radius'          => array( 0, 100 ),
 			'border_width'    => array( 0, 50 ),
 			'shadow_x'        => array( -200, 200 ),
@@ -235,11 +248,15 @@ class WP_Map_Embed_Settings {
 			$value       = isset( $raw[ $key ] ) && '' !== $raw[ $key ] ? (int) $raw[ $key ] : $defaults[ $key ];
 			$out[ $key ] = max( $limits[0], min( $limits[1], $value ) );
 		}
-		// Tablet / mobile: at least the smallest height (0 stays: as on the larger device).
-		foreach ( array( 'height_tablet', 'height_mobile' ) as $key ) {
-			if ( $out[ $key ] && $out[ $key ] < $range[0] ) {
-				$out[ $key ] = $range[0];
-			}
+		// Each device has its own unit and limits; 0 height inherits the
+		// complete height of the larger device. Empty unit inherits its unit.
+		foreach ( array( 'tablet', 'mobile' ) as $device ) {
+			$key = 'height_unit_' . $device;
+			$out[ $key ] = isset( $raw[ $key ] ) && in_array( $raw[ $key ], array_keys( self::HEIGHT_UNITS ), true ) ? $raw[ $key ] : '';
+			$limits = self::HEIGHT_UNITS[ self::height_unit_for( $out, $device ) ];
+			$key = 'height_' . $device;
+			$value = isset( $raw[ $key ] ) && is_scalar( $raw[ $key ] ) ? (int) $raw[ $key ] : 0;
+			$out[ $key ] = $value > 0 ? max( $limits[0], min( $limits[1], $value ) ) : 0;
 		}
 
 		// Tablet / mobile: '' as on the larger device.
@@ -291,15 +308,63 @@ class WP_Map_Embed_Settings {
 		foreach ( array( 'ratio_tablet', 'ratio_mobile' ) as $key ) {
 			$out[ $key ] = isset( $raw[ $key ] ) && in_array( $raw[ $key ], self::RATIOS, true ) ? $raw[ $key ] : '';
 		}
+		foreach ( array( 'ratio_custom', 'ratio_custom_tablet', 'ratio_custom_mobile' ) as $key ) {
+			$value = self::normalize_ratio( isset( $raw[ $key ] ) ? $raw[ $key ] : '' );
+			$out[ $key ] = '' !== $value ? $value : $defaults[ $key ];
+		}
 
 		// The file's text from the edit screen ({ name, svg }), or the shapes kept.
 		$out['shape']          = WP_Map_Embed_Svg_Shape::sanitize( isset( $raw['shape'] ) && is_scalar( $raw['shape'] ) ? (string) $raw['shape'] : '' );
-		$out['shape_position'] = isset( $raw['shape_position'] ) && isset( self::SHAPE_POSITIONS[ $raw['shape_position'] ] ) ? $raw['shape_position'] : $defaults['shape_position'];
+		foreach ( array( 'shape_position', 'shape_position_tablet', 'shape_position_mobile' ) as $key ) {
+			$out[ $key ] = isset( $raw[ $key ] ) && is_string( $raw[ $key ] ) && isset( self::SHAPE_POSITIONS[ $raw[ $key ] ] ) ? $raw[ $key ] : $defaults[ $key ];
+		}
 
 		$out['icon']  = isset( $raw['icon'] ) && in_array( $raw['icon'], self::ICONS, true ) ? $raw['icon'] : $defaults['icon'];
 		$out['label'] = isset( $raw['label'] ) ? sanitize_text_field( $raw['label'] ) : '';
 
 		return $out;
+	}
+
+	/** Same width x height text format and limits as WP Swiper. */
+	public static function normalize_ratio( $value ) {
+		if ( ! is_scalar( $value ) || ! preg_match( '/^\s*(\d+(?:[.,]\d+)?)\s*[x×х:\/*]\s*(\d+(?:[.,]\d+)?)\s*$/iu', (string) $value, $parts ) ) {
+			return '';
+		}
+		$sides = array();
+		foreach ( array( $parts[1], $parts[2] ) as $number ) {
+			$side = max( 0.1, min( 100, (float) str_replace( ',', '.', $number ) ) );
+			$sides[] = rtrim( rtrim( number_format( $side, 2, '.', '' ), '0' ), '.' );
+		}
+		return implode( 'x', $sides );
+	}
+
+	/** Move older whole-map fill modes into the per-device unit selectors. */
+	private static function migrate_height_mode( $settings ) {
+		if ( isset( $settings['size_mode'] ) && in_array( $settings['size_mode'], array( 'fill', 'auto' ), true ) ) {
+			$settings['size_mode'] = 'height';
+			$settings['height_unit'] = 'auto';
+			$settings['height_unit_tablet'] = '';
+			$settings['height_unit_mobile'] = '';
+		}
+		return $settings;
+	}
+
+	/** Resolve a device's unit, falling back through the larger devices. */
+	public static function height_unit_for( $settings, $device = 'desktop' ) {
+		$unit = isset( $settings['height_unit'] ) && in_array( $settings['height_unit'], array_keys( self::HEIGHT_UNITS ), true ) ? $settings['height_unit'] : 'px';
+		if ( 'desktop' === $device ) {
+			return $unit;
+		}
+		foreach ( array( 'tablet', 'mobile' ) as $screen ) {
+			$key = 'height_unit_' . $screen;
+			if ( isset( $settings[ $key ] ) && in_array( $settings[ $key ], array_keys( self::HEIGHT_UNITS ), true ) ) {
+				$unit = $settings[ $key ];
+			}
+			if ( $screen === $device ) {
+				break;
+			}
+		}
+		return $unit;
 	}
 
 	/** Accept only hex or numeric rgba colors; never arbitrary CSS. */

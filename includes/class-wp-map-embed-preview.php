@@ -281,6 +281,7 @@ class WP_Map_Embed_Preview {
 			html::-webkit-scrollbar-thumb { border-radius: 4px; background: rgba(0, 0, 0, 0.35); }
 		}
 		.wp-map-embed-preview-page { box-sizing: border-box; padding: 24px; }
+		.wp-map-embed-preview-page:has(> .wp-map-embed--auto) { height: 100vh; }
 		@media (max-width: 767px) { .wp-map-embed-preview-page { padding: 12px; } }
 		/* No map yet: the words in the middle of the screen. */
 		.wp-map-embed-preview-empty { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; margin: 0; padding: 24px; color: #646970; text-align: center; }

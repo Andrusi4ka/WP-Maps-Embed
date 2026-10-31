@@ -81,9 +81,13 @@ class WP_Map_Embed_Render {
 		$mode     = isset( $settings['size_mode'] ) ? $settings['size_mode'] : 'height';
 		if ( 'ratio' === $mode ) {
 			$classes[] = 'wp-map-embed--ratio';
-		} elseif ( 'fill' === $mode ) {
-			// frontend.js sizes it to its parent block.
-			$classes[] = 'wp-map-embed--fill';
+		} else {
+			foreach ( array( 'desktop', 'tablet', 'mobile' ) as $device ) {
+				if ( 'auto' === WP_Map_Embed_Settings::height_unit_for( $settings, $device ) ) {
+					$classes[] = 'wp-map-embed--auto';
+					break;
+				}
+			}
 		}
 		if ( $activate && ! empty( $settings['grayscale'] ) ) {
 			$classes[] = 'wp-map-embed--gray';
@@ -195,6 +199,15 @@ class WP_Map_Embed_Render {
 			? WP_Map_Embed_Settings::SHAPE_POSITIONS[ $settings['shape_position'] ]
 			: WP_Map_Embed_Settings::SHAPE_POSITIONS['center center'];
 
+		$position_style = '--wme-shape-x:' . self::number( $position[0] ) . ';--wme-shape-y:' . self::number( $position[1] ) . ';';
+		foreach ( array( 'tablet', 'mobile' ) as $device ) {
+			$key = 'shape_position_' . $device;
+			if ( isset( $settings[ $key ] ) && is_string( $settings[ $key ] ) && isset( WP_Map_Embed_Settings::SHAPE_POSITIONS[ $settings[ $key ] ] ) ) {
+				$position = WP_Map_Embed_Settings::SHAPE_POSITIONS[ $settings[ $key ] ];
+			}
+			$position_style .= '--wme-shape-x-' . $device . ':' . self::number( $position[0] ) . ';--wme-shape-y-' . $device . ':' . self::number( $position[1] ) . ';';
+		}
+
 		return array(
 			'id'    => $id,
 			'border' => $border,
@@ -203,7 +216,7 @@ class WP_Map_Embed_Render {
 				esc_attr( $id ),
 				$paths
 			),
-			'style' => '--wme-shape-ratio:' . self::number( $ratio ) . ';--wme-shape-x:' . self::number( $position[0] ) . ';--wme-shape-y:' . self::number( $position[1] ) . ';',
+			'style' => '--wme-shape-ratio:' . self::number( $ratio ) . ';' . $position_style,
 		);
 	}
 
@@ -227,9 +240,10 @@ class WP_Map_Embed_Render {
 	public static function style( $settings, $defer ) {
 		$scale_enabled = ! array_key_exists( 'scale_enabled', $settings ) || ! empty( $settings['scale_enabled'] );
 		$settings = array_merge( WP_Map_Embed_Settings::defaults(), $settings );
-		$unit = isset( $settings['height_unit'] ) && isset( WP_Map_Embed_Settings::HEIGHT_UNITS[ $settings['height_unit'] ] ) ? $settings['height_unit'] : 'px';
+		$unit = WP_Map_Embed_Settings::height_unit_for( $settings );
 		$vars = array(
-			'--wme-height' => (int) $settings['height'] . $unit,
+			'--wme-height' => (int) $settings['height'] . ( 'auto' === $unit ? 'px' : $unit ),
+			'--wme-auto' => 'auto' === $unit ? '1' : '0',
 			'--wme-radius' => ! empty( $settings['rounded'] ) ? (int) $settings['radius'] . 'px' : '0px',
 			'--wme-cover'  => ! empty( $settings['overlay_enabled'] ) ? self::rgba( $settings['overlay_color'], (int) $settings['overlay_opacity'] ) : 'transparent',
 			'--wme-icon'   => (int) $settings['icon_size'] . 'px',
@@ -249,11 +263,12 @@ class WP_Map_Embed_Render {
 			$vars['--wme-shape-shadow'] = sprintf( 'drop-shadow(%dpx %dpx %dpx %s)', (int) $settings['shadow_x'], (int) $settings['shadow_y'], (int) $settings['shadow_blur'], WP_Map_Embed_Settings::sanitize_color( $settings['shadow_color'] ) );
 		}
 		// Unset: as on the larger device (frontend.css falls back).
-		if ( (int) $settings['height_tablet'] ) {
-			$vars['--wme-height-tablet'] = (int) $settings['height_tablet'] . $unit;
-		}
-		if ( (int) $settings['height_mobile'] ) {
-			$vars['--wme-height-mobile'] = (int) $settings['height_mobile'] . $unit;
+		foreach ( array( 'tablet', 'mobile' ) as $device ) {
+			$device_unit = WP_Map_Embed_Settings::height_unit_for( $settings, $device );
+			$vars[ '--wme-auto-' . $device ] = 'auto' === $device_unit ? '1' : '0';
+			if ( (int) $settings[ 'height_' . $device ] ) {
+				$vars[ '--wme-height-' . $device ] = (int) $settings[ 'height_' . $device ] . ( 'auto' === $device_unit ? 'px' : $device_unit );
+			}
 		}
 		$per_device = array(
 			'radius'    => '--wme-radius-',
@@ -290,9 +305,20 @@ class WP_Map_Embed_Render {
 				'ratio_tablet' => '--wme-ratio-tablet',
 				'ratio_mobile' => '--wme-ratio-mobile',
 			);
+			$ratio = '16:9';
+			$custom = '4x3';
 			foreach ( $names as $key => $name ) {
-				if ( ! empty( $settings[ $key ] ) && in_array( $settings[ $key ], WP_Map_Embed_Settings::RATIOS, true ) ) {
-					$vars[ $name ] = str_replace( ':', ' / ', $settings[ $key ] );
+				$custom_key = str_replace( 'ratio', 'ratio_custom', $key );
+				$own_custom = WP_Map_Embed_Settings::normalize_ratio( $settings[ $custom_key ] );
+				if ( '' !== $own_custom ) {
+					$custom = $own_custom;
+				}
+				$own_ratio = ! empty( $settings[ $key ] ) && in_array( $settings[ $key ], WP_Map_Embed_Settings::RATIOS, true );
+				if ( $own_ratio ) {
+					$ratio = $settings[ $key ];
+				}
+				if ( 'ratio' === $key || $own_ratio || ( 'custom' === $ratio && '' !== $own_custom ) ) {
+					$vars[ $name ] = 'custom' === $ratio ? str_replace( 'x', ' / ', $custom ) : str_replace( ':', ' / ', $ratio );
 				}
 			}
 		}

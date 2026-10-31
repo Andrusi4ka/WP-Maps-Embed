@@ -159,8 +159,9 @@
 			var mode     = $box.find( '[name="wp_map_embed[size_mode]"]:checked' ).val();
 
 			setOff( 'ratio', 'ratio' !== mode );
+			var customRatio = $box.find( '[data-field="ratio"] select' ).filter( function () { return $( this ).val() === 'custom'; } ).length > 0;
+			setOff( 'ratio_custom', mode !== 'ratio' || ! customRatio );
 			setOff( 'height', 'ratio' === mode );
-			$box.find( '[data-field="size_mode"] [data-mode="fill"]' ).prop( 'hidden', 'fill' !== mode );
 
 			setOff( 'placeholder', ! checked( 'defer' ) );
 			setOff( 'overlay_color', ! checked( 'overlay_enabled' ) );
@@ -281,7 +282,7 @@
 		}
 
 		$box.on( 'input change', 'input, textarea, select', changed );
-		$( '#title' ).on( 'change', changed );
+		$( '#title' ).on( 'input change', changed );
 
 		// A slider and its number field move together.
 		$box.on( 'input change', '.wp-map-embed-admin__range input', function () {
@@ -493,6 +494,39 @@
 		 * value it inherits; a dot on the icon marks a value of the device's own.
 		 */
 		function syncResponsive( $row ) {
+			if ( $row.attr( 'data-field' ) === 'shape_position' ) {
+				$row.find( '.wp-map-embed-admin__device-input' ).each( function () {
+					var device = $( this ).data( 'device' );
+					var value = $( this ).find( 'input:checked' ).val() || '';
+					$row.find( '.wp-map-embed-admin__device[data-device="' + device + '"]' ).toggleClass( 'has-value', device !== 'desktop' && value !== '' );
+				} );
+				return;
+			}
+			if ( $row.attr( 'data-field' ) === 'height' ) {
+				var inheritedNumber = '';
+				var inheritedUnit = 'px';
+				[ 'desktop', 'tablet', 'mobile' ].forEach( function ( device ) {
+					var $input = $row.find( 'input[data-device="' + device + '"]' );
+					var $unit = $row.find( 'select[data-device="' + device + '"]' );
+					var ownNumber = $input.val() !== '' && Number( $input.val() ) > 0;
+					var ownUnit = $unit.val() !== '';
+					var unit = $unit.val() || inheritedUnit;
+					var $option = $unit.find( 'option' ).filter( function () { return this.value === unit; } );
+					$input.attr( { min: $option.data( 'min' ), max: $option.data( 'max' ) } );
+					$input.toggleClass( 'is-height-auto', unit === 'auto' );
+					if ( unit === 'auto' ) { $input.removeAttr( 'min max' ); }
+					if ( device !== 'desktop' ) {
+						$input.attr( 'placeholder', inheritedNumber );
+						var $inherit = $unit.find( 'option[value=""]' );
+						if ( ! $inherit.data( 'label' ) ) { $inherit.data( 'label', $inherit.text() ); }
+						$inherit.text( $inherit.data( 'label' ) + ' (' + inheritedUnit + ')' );
+						$row.find( '.wp-map-embed-admin__device[data-device="' + device + '"]' ).toggleClass( 'has-value', ownNumber || ownUnit );
+					}
+					if ( ownNumber ) { inheritedNumber = $input.val(); }
+					inheritedUnit = unit;
+				} );
+				return;
+			}
 			var inherited = '';
 			$row.find( '.wp-map-embed-admin__device-input' ).each( function () {
 				var $input = $( this );
@@ -551,24 +585,24 @@
 			} catch ( e ) {}
 		}
 
+		function focusDeviceField( $row ) {
+			var $controls = $row.find( '.wp-map-embed-admin__device-input:visible' );
+			var $input = $controls.filter( 'input' ).first();
+			if ( ! $input.length ) { $input = $controls.find( 'input:checked' ).first(); }
+			( $input.length ? $input : $controls.first() ).trigger( 'focus' );
+		}
+
 		$box
 			.on( 'click', '.wp-map-embed-admin__device', function () {
 				setDevice( $( this ).data( 'device' ) );
-				$( this ).closest( '.wp-map-embed-admin__row' ).find( '.wp-map-embed-admin__device-input:not([hidden])' ).trigger( 'focus' );
+				focusDeviceField( $( this ).closest( '.wp-map-embed-admin__row' ) );
 			} )
 			.on( 'click', '.wp-map-embed-preview__device-btn', function () {
 				setDevice( $( this ).data( 'device' ) );
+				focusDeviceField( $box.find( '[data-field="height"]' ) );
 			} )
 			.on( 'input change', '.wp-map-embed-admin__device-input', function () {
 				syncResponsive( $( this ).closest( '.wp-map-embed-admin__row' ) );
-			} )
-			// The height's unit: its limits for every device's field.
-			.on( 'change', '[name="wp_map_embed[height_unit]"]', function () {
-				var $option = $( this ).find( ':selected' );
-				$( this ).siblings( 'input' ).attr( {
-					min: $option.data( 'min' ),
-					max: $option.data( 'max' ),
-				} );
 			} );
 
 		$update.on( 'click', refresh );

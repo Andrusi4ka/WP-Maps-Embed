@@ -1,6 +1,7 @@
 /* WP Maps Embed: the map's frame and its "click to activate" cover. */
 
 .wp-map-embed {
+	--wme-auto-active: var(--wme-auto, 0);
 	box-sizing: border-box;
 	position: relative;
 	overflow: hidden;
@@ -21,6 +22,7 @@
 
 @media (max-width: 1024px) {
 	.wp-map-embed {
+		--wme-auto-active: var(--wme-auto-tablet, var(--wme-auto, 0));
 		height: var(--wme-height-tablet, var(--wme-height, 450px));
 		border-radius: var(--wme-radius-tablet, var(--wme-radius, 0));
 		border-width: var(--wme-border-width-tablet, var(--wme-border-width, 0px));
@@ -34,6 +36,7 @@
 
 @media (max-width: 767px) {
 	.wp-map-embed {
+		--wme-auto-active: var(--wme-auto-mobile, var(--wme-auto-tablet, var(--wme-auto, 0)));
 		height: var(--wme-height-mobile, var(--wme-height-tablet, var(--wme-height, 450px)));
 		border-radius: var(--wme-radius-mobile, var(--wme-radius-tablet, var(--wme-radius, 0)));
 		border-width: var(--wme-border-width-mobile, var(--wme-border-width-tablet, var(--wme-border-width, 0px)));
@@ -51,6 +54,14 @@
 	box-sizing: border-box;
 }
 
+/* Auto fills the parent's available content area, measured by frontend.js. */
+.wp-map-embed.wp-map-embed--auto {
+	width: 100%;
+	max-width: 100%;
+	min-height: 0;
+	flex-shrink: 0;
+}
+
 /* The stencil (an SVG file's shapes, WP_Map_Embed_Render::shape()): the map
    and its cover only inside them, the page showing round them. Its box is
    as large as the block allows at the shapes' proportions (as "contain"),
@@ -66,13 +77,29 @@
 }
 
 .wp-map-embed__shape-stage {
+	--wme-shape-active-x: var(--wme-shape-x, 0.5);
+	--wme-shape-active-y: var(--wme-shape-y, 0.5);
 	--wme-shape-w: min(100cqw, 100cqh * var(--wme-shape-ratio, 1));
 	position: absolute;
-	top: calc((100cqh - var(--wme-shape-w) / var(--wme-shape-ratio, 1)) * var(--wme-shape-y, 0.5));
-	left: calc((100cqw - var(--wme-shape-w)) * var(--wme-shape-x, 0.5));
+	top: calc((100cqh - var(--wme-shape-w) / var(--wme-shape-ratio, 1)) * var(--wme-shape-active-y));
+	left: calc((100cqw - var(--wme-shape-w)) * var(--wme-shape-active-x));
 	width: var(--wme-shape-w);
 	height: calc(var(--wme-shape-w) / var(--wme-shape-ratio, 1));
 	filter: var(--wme-shape-shadow, none);
+}
+
+@media (max-width: 1024px) {
+	.wp-map-embed__shape-stage {
+		--wme-shape-active-x: var(--wme-shape-x-tablet, var(--wme-shape-x, 0.5));
+		--wme-shape-active-y: var(--wme-shape-y-tablet, var(--wme-shape-y, 0.5));
+	}
+}
+
+@media (max-width: 767px) {
+	.wp-map-embed__shape-stage {
+		--wme-shape-active-x: var(--wme-shape-x-mobile, var(--wme-shape-x-tablet, var(--wme-shape-x, 0.5)));
+		--wme-shape-active-y: var(--wme-shape-y-mobile, var(--wme-shape-y-tablet, var(--wme-shape-y, 0.5)));
+	}
 }
 
 .wp-map-embed__shape {

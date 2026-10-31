@@ -12,6 +12,12 @@ Google Maps on a page without copying iframe code, with a "click to activate" co
 
 == Description ==
 
+* Custom proportions, as in WP Swiper: select Custom and enter width x height (4x3, 2.35x1), separately for desktop, tablet and mobile, with inheritance.
+
+* Choose Auto in a device's height unit selector to fill the parent's available width and height, including WPBakery columns. Other devices can use fixed or relative units. A parent without its own available height uses the saved map height as a fallback.
+
+* Height and units can be set separately for desktop, tablet and mobile: px, %, vh, vw and dvh. An empty height inherits the larger device's complete height; an empty unit inherits its unit. Percentage heights require a parent with a defined height.
+
 * Appearance: border style and color, border width and corner radius per device, and a shadow with offsets, blur, spread and opacity. With an SVG stencil, the border follows its paths and the shadow follows its contour (spread and corner radius apply only without a stencil).
 * Color fields use Pickr 1.9.1 (MIT), with theme colors, HEX / RGB / HSL, Cancel and Default. Border and shadow colors support transparency. WP Swiper is not required.
 
