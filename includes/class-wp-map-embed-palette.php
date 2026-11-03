@@ -1,10 +1,8 @@
 <?php
 /**
- * The colors the slide text editors offer (the "Text color" button of the
- * Caption and Description editors, admin.js): the theme's colors, then
- * black, white and greys. Any other color can still be picked there
- * ("Custom..."). Until 2.9 a WP Swiper > Settings page added the user's own;
- * it is gone (uninstall.php still removes what it saved).
+ * The swatches of the edit screen's color fields (Pickr, admin.js): the
+ * theme's colors, then black, white and greys. Any other color can still be
+ * picked there.
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -100,8 +98,8 @@ class WP_Map_Embed_Palette {
 	}
 
 	/**
-	 * The editors' palette: the theme's colors, then the basic ones; each
-	 * color once (its first name), a nameless one named by itself.
+	 * The palette: the theme's colors, then the basic ones; each color once
+	 * (its first name), a nameless one named by itself.
 	 *
 	 * @return array [ [ 'color' => '#rrggbb', 'name' => string ], ... ]
 	 */
@@ -119,20 +117,5 @@ class WP_Map_Embed_Palette {
 			);
 		}
 		return $all;
-	}
-
-	/**
-	 * The palette as TinyMCE's textcolor takes it (forecolor_map): the color
-	 * without "#", then its name, one after the other.
-	 *
-	 * @return string[]
-	 */
-	public static function tinymce_map() {
-		$map = array();
-		foreach ( self::colors() as $entry ) {
-			$map[] = strtoupper( substr( $entry['color'], 1 ) );
-			$map[] = $entry['name'];
-		}
-		return $map;
 	}
 }

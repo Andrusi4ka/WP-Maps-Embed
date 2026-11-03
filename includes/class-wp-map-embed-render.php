@@ -64,32 +64,24 @@ class WP_Map_Embed_Render {
 	 * @return string '' without a usable map.
 	 */
 	public static function markup( $settings, $title = '', $class = '' ) {
-		$url = WP_Map_Embed_Settings::embed_url( $settings );
+		// Whatever version saved them (or a caller's own array): complete.
+		$settings = WP_Map_Embed_Settings::prepare( $settings );
+		$url      = WP_Map_Embed_Settings::embed_url( $settings );
 		if ( '' === $url ) {
 			return '';
 		}
 
-		// Cover behavior follows the individual switches; no master toggle.
-		$activate = false;
-		foreach ( array( 'grayscale', 'defer', 'overlay_enabled', 'icon_enabled', 'text_enabled' ) as $key ) {
-			if ( ! empty( $settings[ $key ] ) ) {
-				$activate = true;
-			}
-		}
-		$defer    = $activate && ! empty( $settings['defer'] );
+		// The cover is there while any of its options is on.
+		$activate = WP_Map_Embed_Settings::has_cover( $settings );
+		$defer    = ! empty( $settings['defer'] );
 		$classes  = array( 'wp-map-embed' );
-		$mode     = isset( $settings['size_mode'] ) ? $settings['size_mode'] : 'height';
-		if ( 'ratio' === $mode ) {
+		if ( 'ratio' === $settings['size_mode'] ) {
 			$classes[] = 'wp-map-embed--ratio';
-		} else {
-			foreach ( array( 'desktop', 'tablet', 'mobile' ) as $device ) {
-				if ( 'auto' === WP_Map_Embed_Settings::height_unit_for( $settings, $device ) ) {
-					$classes[] = 'wp-map-embed--auto';
-					break;
-				}
-			}
+		} elseif ( self::uses_auto( $settings ) ) {
+			// frontend.js fits it to its parent on the devices set to Auto.
+			$classes[] = 'wp-map-embed--auto';
 		}
-		if ( $activate && ! empty( $settings['grayscale'] ) ) {
+		if ( ! empty( $settings['grayscale'] ) ) {
 			$classes[] = 'wp-map-embed--gray';
 		}
 		if ( ! $activate ) {
@@ -110,14 +102,11 @@ class WP_Map_Embed_Render {
 
 		$cover = '';
 		if ( $activate ) {
-			$label = trim( (string) $settings['label'] );
-			if ( array_key_exists( 'text_enabled', $settings ) && empty( $settings['text_enabled'] ) ) {
-				$label = '';
-			}
+			$label = ! empty( $settings['text_enabled'] ) ? trim( (string) $settings['label'] ) : '';
 			$cover = sprintf(
 				'<button type="button" class="wp-map-embed__cover"%1$s>%2$s%3$s</button>',
 				'' === $label ? ' aria-label="' . esc_attr__( 'Show the interactive map', 'wp-map-embed' ) . '"' : '',
-				! array_key_exists( 'icon_enabled', $settings ) || ! empty( $settings['icon_enabled'] ) ? self::icon( $settings['icon'] ) : '',
+				! empty( $settings['icon_enabled'] ) ? self::icon( $settings['icon'] ) : '',
 				'' === $label ? '' : '<span class="wp-map-embed__label">' . esc_html( $label ) . '</span>'
 			);
 		}
@@ -148,6 +137,21 @@ class WP_Map_Embed_Render {
 		);
 	}
 
+	/**
+	 * Whether any device takes its height from the parent (the Auto unit).
+	 *
+	 * @param array $settings Complete settings.
+	 * @return bool
+	 */
+	private static function uses_auto( $settings ) {
+		foreach ( array( 'desktop', 'tablet', 'mobile' ) as $device ) {
+			if ( 'auto' === WP_Map_Embed_Settings::height_unit_for( $settings, $device ) ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	/** Stencils rendered in this request (their clip paths' ids). */
 	private static $shapes = 0;
 
@@ -163,10 +167,11 @@ class WP_Map_Embed_Render {
 	 * @return array|null { id, clip: SVG markup, style: CSS variables }; null without a shape.
 	 */
 	public static function shape( $settings ) {
-		if ( array_key_exists( 'shape_enabled', $settings ) && empty( $settings['shape_enabled'] ) ) {
+		$settings = WP_Map_Embed_Settings::prepare( $settings );
+		if ( empty( $settings['shape_enabled'] ) ) {
 			return null;
 		}
-		$data = WP_Map_Embed_Svg_Shape::decode( isset( $settings['shape'] ) ? $settings['shape'] : '' );
+		$data = WP_Map_Embed_Svg_Shape::decode( $settings['shape'] );
 		if ( ! $data ) {
 			return null;
 		}
@@ -187,7 +192,7 @@ class WP_Map_Embed_Render {
 			foreach ( $frame['shapes'] as $shape ) {
 				$strokes .= '<path d="' . esc_attr( $shape['d'] ) . '" vector-effect="non-scaling-stroke"/>';
 			}
-			$border_style = isset( $settings['border_style'] ) && in_array( $settings['border_style'], array( 'solid', 'dashed', 'dotted', 'double' ), true ) ? $settings['border_style'] : 'solid';
+			$border_style = in_array( $settings['border_style'], WP_Map_Embed_Settings::BORDER_STYLES, true ) ? $settings['border_style'] : 'solid';
 			// Double borders leave a transparent gap rather than painting over the map.
 			$mask = '';
 			if ( 'double' === $border_style ) {
@@ -195,7 +200,7 @@ class WP_Map_Embed_Render {
 			}
 			$border = '<svg class="wp-map-embed__shape-border wp-map-embed__shape-border--' . esc_attr( $border_style ) . '" viewBox="0 0 1 1" preserveAspectRatio="none" aria-hidden="true" focusable="false">' . $mask . '<g class="wp-map-embed__border-line"' . ( $mask ? ' mask="url(#' . esc_attr( $id . '-border-gap' ) . ')"' : '' ) . '>' . $strokes . '</g></svg>';
 		}
-		$position = isset( $settings['shape_position'], WP_Map_Embed_Settings::SHAPE_POSITIONS[ $settings['shape_position'] ] )
+		$position = is_string( $settings['shape_position'] ) && isset( WP_Map_Embed_Settings::SHAPE_POSITIONS[ $settings['shape_position'] ] )
 			? WP_Map_Embed_Settings::SHAPE_POSITIONS[ $settings['shape_position'] ]
 			: WP_Map_Embed_Settings::SHAPE_POSITIONS['center center'];
 
@@ -238,9 +243,9 @@ class WP_Map_Embed_Render {
 	 * @return string
 	 */
 	public static function style( $settings, $defer ) {
-		$scale_enabled = ! array_key_exists( 'scale_enabled', $settings ) || ! empty( $settings['scale_enabled'] );
-		$settings = array_merge( WP_Map_Embed_Settings::defaults(), $settings );
-		$unit = WP_Map_Embed_Settings::height_unit_for( $settings );
+		$settings      = WP_Map_Embed_Settings::prepare( $settings );
+		$scale_enabled = ! empty( $settings['scale_enabled'] );
+		$unit          = WP_Map_Embed_Settings::height_unit_for( $settings );
 		$vars = array(
 			'--wme-height' => (int) $settings['height'] . ( 'auto' === $unit ? 'px' : $unit ),
 			'--wme-auto' => 'auto' === $unit ? '1' : '0',
@@ -250,7 +255,7 @@ class WP_Map_Embed_Render {
 		);
 		if ( ! empty( $settings['border'] ) ) {
 			$vars['--wme-border-width'] = (int) $settings['border_width'] . 'px';
-			$vars['--wme-border-style'] = in_array( $settings['border_style'], array( 'solid', 'dashed', 'dotted', 'double' ), true ) ? $settings['border_style'] : 'solid';
+			$vars['--wme-border-style'] = in_array( $settings['border_style'], WP_Map_Embed_Settings::BORDER_STYLES, true ) ? $settings['border_style'] : 'solid';
 			$vars['--wme-border-color'] = WP_Map_Embed_Settings::sanitize_color( $settings['border_color'] );
 			foreach ( array( 'tablet', 'mobile' ) as $device ) {
 				if ( '' !== $settings[ 'border_width_' . $device ] ) {

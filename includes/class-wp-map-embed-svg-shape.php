@@ -1098,17 +1098,32 @@ class WP_Map_Embed_Svg_Shape {
 		return round( (float) $value, 5 );
 	}
 
-	// A layer's or object's name: plain text, short.
 	// Whether text is valid UTF-8 (without mbstring too).
 	private static function is_utf8( $text ) {
 		return function_exists( 'mb_check_encoding' ) ? mb_check_encoding( $text, 'UTF-8' ) : (bool) preg_match( '//u', $text );
 	}
 
+	// A layer's or object's name: plain text, short.
 	private static function clean_id( $id ) {
-		return substr( sanitize_text_field( (string) $id ), 0, 64 );
+		return self::cut( sanitize_text_field( (string) $id ), 64 );
 	}
 
 	private static function clean_name( $name ) {
-		return substr( sanitize_file_name( wp_basename( (string) $name ) ), 0, 120 );
+		return self::cut( sanitize_file_name( wp_basename( (string) $name ) ), 120 );
+	}
+
+	/**
+	 * Text cut to a number of characters, never inside one ("Головна" stays
+	 * valid UTF-8: the JSON it is kept in would not encode otherwise).
+	 *
+	 * @param string $text  Text.
+	 * @param int    $chars Most characters.
+	 * @return string
+	 */
+	private static function cut( $text, $chars ) {
+		if ( function_exists( 'mb_substr' ) ) {
+			return mb_substr( $text, 0, $chars, 'UTF-8' );
+		}
+		return preg_match( '/^.{0,' . (int) $chars . '}/us', $text, $match ) ? $match[0] : '';
 	}
 }

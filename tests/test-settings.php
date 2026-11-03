@@ -177,9 +177,53 @@ class Test_Settings extends WP_Map_Embed_TestCase {
 
 	public function test_checkboxes_absent_are_off() {
 		$settings = WP_Map_Embed_Settings::sanitize( array( 'source' => 'Oslo' ) );
-		$this->assertFalse( $settings['activate'] );
+		foreach ( array( 'grayscale', 'defer', 'overlay_enabled', 'icon_enabled', 'text_enabled', 'rounded', 'border', 'shadow', 'scale_enabled', 'shape_enabled' ) as $key ) {
+			$this->assertFalse( $settings[ $key ], $key );
+		}
+		$this->assertArrayNotHasKey( 'activate', $settings );
+	}
+
+	public function test_settings_of_1_0_brought_up_to_date() {
+		// Cover off: none of its options.
+		$settings = WP_Map_Embed_Settings::prepare( array( 'activate' => false, 'grayscale' => true, 'defer' => true, 'label' => 'Open' ) );
+		$this->assertFalse( WP_Map_Embed_Settings::has_cover( $settings ) );
+		$this->assertArrayNotHasKey( 'activate', $settings );
+
+		// Cover on: its options as saved, the new ones as they looked.
+		$settings = WP_Map_Embed_Settings::prepare( array( 'activate' => true, 'grayscale' => false, 'label' => 'Open', 'icon' => 'none' ) );
 		$this->assertFalse( $settings['grayscale'] );
-		$this->assertFalse( $settings['defer'] );
+		$this->assertTrue( $settings['overlay_enabled'] );
+		$this->assertTrue( $settings['text_enabled'] );
+		$this->assertFalse( $settings['icon_enabled'] );
+		$this->assertSame( 'hand', $settings['icon'] );
+		// Rounded corners, as 1.0 always had them.
+		$this->assertTrue( $settings['rounded'] );
+
+		// "Fill the parent block": the Auto unit.
+		$settings = WP_Map_Embed_Settings::prepare( array( 'size_mode' => 'fill', 'height_unit_mobile' => 'vh' ) );
+		$this->assertSame( 'height', $settings['size_mode'] );
+		$this->assertSame( 'auto', WP_Map_Embed_Settings::height_unit_for( $settings, 'mobile' ) );
+
+		// Current settings pass unchanged.
+		$current = WP_Map_Embed_Settings::sanitize( array( 'source' => 'Oslo', 'grayscale' => '1' ) );
+		$this->assertEquals( $current, WP_Map_Embed_Settings::prepare( $current ) );
+	}
+
+	public function test_height_unit_per_device() {
+		$settings = WP_Map_Embed_Settings::sanitize( array( 'height' => '450', 'height_unit_tablet' => '%', 'height_tablet' => '300', 'height_unit_mobile' => 'nope' ) );
+		$this->assertSame( 'px', WP_Map_Embed_Settings::height_unit_for( $settings ) );
+		$this->assertSame( '%', WP_Map_Embed_Settings::height_unit_for( $settings, 'tablet' ) );
+		// Inherited from the tablet; its own limits.
+		$this->assertSame( '%', WP_Map_Embed_Settings::height_unit_for( $settings, 'mobile' ) );
+		$this->assertSame( 100, $settings['height_tablet'] );
+		$this->assertSame( '', $settings['height_unit_mobile'] );
+	}
+
+	public function test_custom_ratio_text() {
+		$this->assertSame( '4x3', WP_Map_Embed_Settings::normalize_ratio( '4:3' ) );
+		$this->assertSame( '2.35x1', WP_Map_Embed_Settings::normalize_ratio( ' 2,35 × 1 ' ) );
+		$this->assertSame( '100x0.1', WP_Map_Embed_Settings::normalize_ratio( '500x0' ) );
+		$this->assertSame( '', WP_Map_Embed_Settings::normalize_ratio( 'wide' ) );
 	}
 
 	public function test_colours_and_text() {

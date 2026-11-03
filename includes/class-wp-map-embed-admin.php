@@ -48,7 +48,8 @@ class WP_Map_Embed_Admin {
 					'copied'      => __( 'Copied!', 'wp-map-embed' ),
 					'copyFailed'  => __( 'Could not copy. Select the link and copy it manually.', 'wp-map-embed' ),
 					'unsaved'     => __( 'The changes you made will be lost if you leave this page.', 'wp-map-embed' ),
-					'textColors' => WP_Map_Embed_Palette::tinymce_map(),
+					// The theme's colors, then black, white and greys: [ { color, name } ].
+					'swatches'    => WP_Map_Embed_Palette::colors(),
 					'colorPicker' => array(
 						'ui:dialog'       => __( 'Color picker', 'wp-map-embed' ),
 						'btn:toggle'      => __( 'Choose a color', 'wp-map-embed' ),
@@ -270,11 +271,11 @@ class WP_Map_Embed_Admin {
 		self::row_start( 'shape_enabled', '' );
 		self::checkbox( 'shape_enabled', $values['shape_enabled'], __( 'Shape', 'wp-map-embed' ), __( 'The map shows only through the shapes of an SVG file (all of them together), the page round them. Filled shapes count; outlines, lines and text are left out. Keep Google’s logo and the bottom edge of the map in the shape: Google’s terms do not allow hiding them.', 'wp-map-embed' ) );
 		self::row_end();
-		self::row_start( 'shape', __( 'SVG stencil', 'wp-map-embed' ) );
+		self::row_start( 'shape', __( 'SVG stencil', 'wp-map-embed' ), '', 'shape_enabled' );
 		self::shape_box( $values['shape'] );
 		self::row_end();
 
-		self::row_start( 'shape_position', __( 'Shape position', 'wp-map-embed' ), '', 'shape', true );
+		self::row_start( 'shape_position', __( 'Shape position', 'wp-map-embed' ), '', 'shape_enabled', true );
 		echo '<div class="wp-map-embed-admin__responsive">';
 		foreach ( array( 'desktop', 'tablet', 'mobile' ) as $device ) {
 			$key = 'shape_position' . ( 'desktop' === $device ? '' : '_' . $device );
@@ -341,8 +342,8 @@ class WP_Map_Embed_Admin {
 		self::row_end();
 
 		echo '<div class="wp-map-embed-admin__icon-fields">';
-		self::responsive_px( 'icon_size', __( 'Size (px)', 'wp-map-embed' ), $values, 16, 200, 'icon', '', '', false );
-		self::row_start( 'icon_color', __( 'Color', 'wp-map-embed' ), '', 'icon' );
+		self::responsive_px( 'icon_size', __( 'Size (px)', 'wp-map-embed' ), $values, 16, 200, 'icon_enabled', '', '', false );
+		self::row_start( 'icon_color', __( 'Color', 'wp-map-embed' ), '', 'icon_enabled' );
 		self::color( 'icon_color', $values['icon_color'], '', true );
 		self::row_end();
 		echo '</div>';

@@ -112,7 +112,7 @@ class Test_Svg_Shape extends WP_Map_Embed_TestCase {
 	}
 
 	public function test_the_map_shows_through_the_shapes() {
-		$html = $this->render( array( 'shape' => $this->two(), 'activate' => '1', 'shape_position' => 'left bottom' ) );
+		$html = $this->render( array( 'shape_enabled' => '1', 'shape' => $this->two(), 'overlay_enabled' => '1', 'shape_position' => 'left bottom' ) );
 
 		$this->assertContains( 'wp-map-embed--shape', $this->classes( $html ) );
 		// The shapes' bounds, the file's margins left out: 60 by 20.
@@ -128,9 +128,28 @@ class Test_Svg_Shape extends WP_Map_Embed_TestCase {
 		$this->assertMatchesRegularExpression( '/<div class="wp-map-embed__shape" style="-webkit-clip-path:url\(#' . $clip[1] . '\);clip-path:url\(#' . $clip[1] . '\)"><iframe [^>]*><\/iframe><button [^>]*class="wp-map-embed__cover"/', $html );
 	}
 
+	public function test_long_names_in_other_letters_are_cut_whole() {
+		// Each Cyrillic letter is two bytes: cut by bytes, one would be split
+		// and the JSON (the setting) not encode at all.
+		$layer = str_repeat( 'Карта', 20 );
+		$value = WP_Map_Embed_Svg_Shape::sanitize( wp_json_encode( array( 'name' => str_repeat( 'мапа', 40 ) . '.svg', 'svg' => $this->svg( '<rect id="' . $layer . '" width="10" height="10"/><rect x="20" width="5" height="5"/>' ) ) ) );
+		$data  = WP_Map_Embed_Svg_Shape::decode( $value );
+		$this->assertNotNull( $data );
+		$this->assertSame( 120, mb_strlen( $data['name'] ) );
+		$this->assertSame( mb_substr( $layer, 0, 64 ), $data['shapes'][0]['id'] );
+	}
+
+	public function test_the_stencil_switch_off_keeps_the_file_draws_none() {
+		$settings = $this->settings( array( 'shape' => $this->two() ) );
+		$this->assertNotSame( '', $settings['shape'] );
+		$this->assertStringNotContainsString( 'clipPath', WP_Map_Embed_Render::markup( $settings, 'Test map' ) );
+		// Saved before the switch: on, with its shape.
+		$this->assertTrue( WP_Map_Embed_Settings::prepare( array( 'shape' => $settings['shape'] ) )['shape_enabled'] );
+	}
+
 	public function test_each_stencil_its_own_clip_path() {
-		$one = $this->render( array( 'shape' => $this->two() ) );
-		$two = $this->render( array( 'shape' => $this->two() ) );
+		$one = $this->render( array( 'shape_enabled' => '1', 'shape' => $this->two() ) );
+		$two = $this->render( array( 'shape_enabled' => '1', 'shape' => $this->two() ) );
 		preg_match( '/clipPath id="([^"]+)"/', $one, $a );
 		preg_match( '/clipPath id="([^"]+)"/', $two, $b );
 		$this->assertNotSame( $a[1], $b[1] );
@@ -139,7 +158,7 @@ class Test_Svg_Shape extends WP_Map_Embed_TestCase {
 	public function test_a_kept_value_with_a_bad_path_draws_no_stencil() {
 		$data                   = json_decode( WP_Map_Embed_Svg_Shape::sanitize( $this->two() ), true );
 		$data['shapes'][0]['d'] = 'M 0 0 L 1 1 Z" onclick="alert(1)';
-		$html                   = WP_Map_Embed_Render::markup( array( 'shape' => wp_json_encode( $data ) ) + $this->settings(), 'Test map' );
+		$html                   = WP_Map_Embed_Render::markup( array( 'shape_enabled' => true, 'shape' => wp_json_encode( $data ) ) + $this->settings(), 'Test map' );
 		$this->assertStringNotContainsString( 'clipPath', $html );
 		$this->assertStringNotContainsString( 'alert', $html );
 	}
@@ -193,7 +212,7 @@ class Test_Svg_Shape extends WP_Map_Embed_TestCase {
 
 	public function test_the_file_read_in_the_preview_and_kept_as_shapes() {
 		$svg   = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><circle cx="5" cy="5" r="5"/></svg>';
-		$html  = WP_Map_Embed_Preview::frame_html( array( 'source' => 'Oslo', 'shape' => wp_json_encode( array( 'name' => 'dot.svg', 'svg' => $svg ) ) ), 'Office' );
+		$html  = WP_Map_Embed_Preview::frame_html( array( 'source' => 'Oslo', 'shape_enabled' => '1', 'shape' => wp_json_encode( array( 'name' => 'dot.svg', 'svg' => $svg ) ) ), 'Office' );
 		$shape = Test_Admin_Preview::info( $html )['shape'];
 
 		$this->assertSame( 'dot.svg: 1 shape', $shape['summary'] );

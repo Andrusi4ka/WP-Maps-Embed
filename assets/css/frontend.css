@@ -48,13 +48,9 @@
 	}
 }
 
-/* Fill the parent block: frontend.js sets the height it measures (inline);
-   until then, and where there is too little room, the heights above. */
-.wp-map-embed--fill {
-	box-sizing: border-box;
-}
-
-/* Auto fills the parent's available content area, measured by frontend.js. */
+/* Auto fills the parent's free height: frontend.js sets the height it
+   measures (inline); until then, and where there is too little room, the
+   heights above. */
 .wp-map-embed.wp-map-embed--auto {
 	width: 100%;
 	max-width: 100%;

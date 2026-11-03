@@ -5,8 +5,9 @@ Google Maps on a WordPress page without copying iframe code: create a map from a
 - **Maps kept in one place:** each map has its own settings and is placed with a shortcode or the WPBakery element; change a map once, every page with it follows.
 - **Source:** an address (no API key needed) or Google's *Share > Embed a map* code, the whole iframe or just its link. Only Google's embedded maps are shown in the frame.
 - **Map type and language:** map or satellite view; the names on the map in the site's language or another.
-- **Size:** height per device (px or vh), proportions per device, or filling the parent block (in a WPBakery row the map is as tall as the column beside it). Corner radius per device.
-- **Click to activate:** a cover over the map until it is clicked, so the page scrolls past it instead of zooming the map. Black and white until then, a hand or pin icon (its colour, its size per device), a text, the cover's colour and opacity. Works with the keyboard.
+- **Size:** height per device (px, %, vh, vw, dvh, or Auto: filling the parent block, in a WPBakery row as tall as the column beside it), or proportions per device (custom ones too). Map scale per device.
+- **Appearance:** rounded corners, border and shadow; an SVG stencil the map shows through.
+- **Click to activate:** a cover over the map until it is clicked, so the page scrolls past it instead of zooming the map. Each part with its own switch: black and white until then, the cover's colour, a hand or pin icon (its colour, its size per device), a text. Works with the keyboard.
 - **Load only after a click:** Google's frame is not requested until the visitor opens the map, with a placeholder image if you like.
 - **Preview:** beside the settings, refreshed with its *Update preview* button.
 
@@ -40,9 +41,12 @@ PHPUnit tests with the WordPress test suite, run by GitHub Actions on every push
 | Path | What it holds |
 |---|---|
 | `wp-map-embed.php` | Plugin header, post type, menu icon, update checker |
-| `includes/class-wp-map-embed-settings.php` | Settings, sanitizing, the embed URL from an address or Google's code |
+| `includes/class-wp-map-embed-settings.php` | Settings, sanitizing, bringing older settings up to date (`prepare()`), the embed URL |
 | `includes/class-wp-map-embed-admin.php` | Map edit screen, saving, the preview's request |
 | `includes/class-wp-map-embed-render.php` | Shortcode and markup |
+| `includes/class-wp-map-embed-preview.php` | The preview frame in a monitor, tablet or phone |
+| `includes/class-wp-map-embed-svg-shape.php` | Reading an SVG stencil (geometry only) |
+| `includes/class-wp-map-embed-palette.php` | The colour fields' swatches (theme colours) |
 | `includes/class-wp-map-embed-wpbakery.php` | WPBakery element |
 | `assets/js/admin.js`, `assets/css/admin.css` | Edit screen behaviour and styles |
 | `assets/js/frontend.js`, `assets/css/frontend.css` | The cover, deferred loading, filling the parent block |

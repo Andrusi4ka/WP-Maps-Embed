@@ -188,20 +188,50 @@ class WP_Map_Embed_Settings {
 	 * @return array
 	 */
 	public static function get( $post_id ) {
-		$saved = get_post_meta( $post_id, self::META, true );
-		if ( is_array( $saved ) ) {
-			$saved = self::migrate_height_mode( $saved );
+		return self::prepare( get_post_meta( $post_id, self::META, true ) );
+	}
+
+	/**
+	 * Settings as stored by any version, brought up to date: what older
+	 * versions saved differently is moved to today's keys (the map looks as
+	 * it did), then the defaults fill in the rest. The one place that knows
+	 * about older settings: everything else reads complete, current ones.
+	 *
+	 * @param mixed $saved Stored settings.
+	 * @return array
+	 */
+	public static function prepare( $saved ) {
+		$saved = is_array( $saved ) ? $saved : array();
+
+		// 1.0: one "Cover the map until it is clicked" switch over the cover's
+		// options. Off: none of them (their own switches came later).
+		if ( array_key_exists( 'activate', $saved ) ) {
+			if ( empty( $saved['activate'] ) ) {
+				foreach ( self::COVER_SWITCHES as $key ) {
+					$saved[ $key ] = false;
+				}
+			}
+			unset( $saved['activate'] );
 		}
-		if ( is_array( $saved ) && ! array_key_exists( 'text_enabled', $saved ) ) {
-			$saved['text_enabled'] = isset( $saved['label'] ) && '' !== trim( (string) $saved['label'] );
+		// 1.0: "Fill the parent block" was a size mode; now the Auto unit.
+		if ( isset( $saved['size_mode'] ) && in_array( $saved['size_mode'], array( 'fill', 'auto' ), true ) ) {
+			$saved['size_mode']          = 'height';
+			$saved['height_unit']        = 'auto';
+			$saved['height_unit_tablet'] = '';
+			$saved['height_unit_mobile'] = '';
 		}
-		if ( is_array( $saved ) && isset( $saved['icon'] ) && 'none' === $saved['icon'] ) {
+		// 1.0: the icon "none" and a text without a switch.
+		if ( isset( $saved['icon'] ) && 'none' === $saved['icon'] ) {
 			if ( ! array_key_exists( 'icon_enabled', $saved ) ) {
 				$saved['icon_enabled'] = false;
 			}
 			$saved['icon'] = 'hand';
 		}
-		if ( is_array( $saved ) && ! array_key_exists( 'scale_enabled', $saved ) ) {
+		if ( ! array_key_exists( 'text_enabled', $saved ) ) {
+			$saved['text_enabled'] = isset( $saved['label'] ) && '' !== trim( (string) $saved['label'] );
+		}
+		// Settings saved before their switch: on where they were in use.
+		if ( ! array_key_exists( 'scale_enabled', $saved ) ) {
 			$saved['scale_enabled'] = false;
 			foreach ( array( 'scale', 'scale_tablet', 'scale_mobile' ) as $key ) {
 				if ( isset( $saved[ $key ] ) && '' !== $saved[ $key ] && 100 !== (int) $saved[ $key ] ) {
@@ -209,10 +239,32 @@ class WP_Map_Embed_Settings {
 				}
 			}
 		}
-		if ( is_array( $saved ) && ! array_key_exists( 'shape_enabled', $saved ) ) {
+		if ( ! array_key_exists( 'shape_enabled', $saved ) ) {
 			$saved['shape_enabled'] = ! empty( $saved['shape'] );
 		}
-		return array_merge( self::defaults(), is_array( $saved ) ? $saved : array() );
+
+		return array_merge( self::defaults(), $saved );
+	}
+
+	/** The cover's options: with any of them on, the map waits for a click. */
+	const COVER_SWITCHES = array( 'grayscale', 'defer', 'overlay_enabled', 'icon_enabled', 'text_enabled' );
+
+	/** Border styles, as CSS names them. */
+	const BORDER_STYLES = array( 'solid', 'dashed', 'dotted', 'double' );
+
+	/**
+	 * Whether the map has a cover (waits for a click).
+	 *
+	 * @param array $settings Complete settings (prepare()).
+	 * @return bool
+	 */
+	public static function has_cover( $settings ) {
+		foreach ( self::COVER_SWITCHES as $key ) {
+			if ( ! empty( $settings[ $key ] ) ) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**
@@ -222,7 +274,7 @@ class WP_Map_Embed_Settings {
 	 * @return array
 	 */
 	public static function sanitize( $raw ) {
-		$raw = self::migrate_height_mode( $raw );
+		$raw      = is_array( $raw ) ? $raw : array();
 		$defaults = self::defaults();
 		$out      = array();
 
@@ -298,7 +350,7 @@ class WP_Map_Embed_Settings {
 			$color = self::sanitize_color( isset( $raw[ $key ] ) ? $raw[ $key ] : '' );
 			$out[ $key ] = '' !== $color ? $color : $defaults[ $key ];
 		}
-		$out['border_style'] = isset( $raw['border_style'] ) && in_array( $raw['border_style'], array( 'solid', 'dashed', 'dotted', 'double' ), true ) ? $raw['border_style'] : 'solid';
+		$out['border_style'] = isset( $raw['border_style'] ) && in_array( $raw['border_style'], self::BORDER_STYLES, true ) ? $raw['border_style'] : 'solid';
 
 		$out['map_type']  = isset( $raw['map_type'] ) && in_array( $raw['map_type'], self::MAP_TYPES, true ) ? $raw['map_type'] : $defaults['map_type'];
 		$language         = isset( $raw['language'] ) ? (string) $raw['language'] : '';
@@ -336,17 +388,6 @@ class WP_Map_Embed_Settings {
 			$sides[] = rtrim( rtrim( number_format( $side, 2, '.', '' ), '0' ), '.' );
 		}
 		return implode( 'x', $sides );
-	}
-
-	/** Move older whole-map fill modes into the per-device unit selectors. */
-	private static function migrate_height_mode( $settings ) {
-		if ( isset( $settings['size_mode'] ) && in_array( $settings['size_mode'], array( 'fill', 'auto' ), true ) ) {
-			$settings['size_mode'] = 'height';
-			$settings['height_unit'] = 'auto';
-			$settings['height_unit_tablet'] = '';
-			$settings['height_unit_mobile'] = '';
-		}
-		return $settings;
 	}
 
 	/** Resolve a device's unit, falling back through the larger devices. */

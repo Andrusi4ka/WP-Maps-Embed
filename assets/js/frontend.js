@@ -32,33 +32,22 @@
 	} );
 
 	/* ------------------------------------------------------------------ *
-	 * Fill the parent block
+	 * Auto height: fill the parent block
 	 *
 	 * height: 100% cannot reach through the page builder's wrappers (column >
 	 * inner > wrapper > element), so the free height is measured: with the
 	 * map collapsed, the column keeps the height its row gives it (the
 	 * neighbour column, a full-height row...). The map is then made as tall
 	 * as that, less whatever else the column holds (its padding, a heading).
+	 * Only on the devices set to Auto (--wme-auto-active, frontend.css).
 	 * ------------------------------------------------------------------ */
 
 	// Below this much free height (a column alone in its row, columns stacked
-	// on phones) the map keeps its Height setting.
+	// on phones) the map keeps its saved height: the parent has none of its own.
 	var FILL_MIN = 120;
 
 	function fillBox( map ) {
 		return map.closest( '.wpb_column, .vc_column_container' ) || map.parentElement;
-	}
-
-	function fillHeight( map ) {
-		var box = fillBox( map );
-
-		map.style.height = '0px';
-		var collapsed = box.getBoundingClientRect().height;
-
-		map.style.height = collapsed + 'px';
-		var free = Math.floor( collapsed - ( box.getBoundingClientRect().height - collapsed ) );
-		map.style.height = free >= FILL_MIN ? free + 'px' : '';
-		return map.offsetHeight;
 	}
 
 	function autoHeight( map ) {
@@ -98,13 +87,12 @@
 			}
 			branch = parent;
 		}
-		// Without an independent parent height, retain the saved height.
-		map.style.height = available > 0 ? Math.floor( available ) + 'px' : '';
+		// Without a parent height of its own, the saved height.
+		map.style.height = available >= FILL_MIN ? Math.floor( available ) + 'px' : '';
 	}
 
 	function fill( map ) {
 		var queued = false;
-		var fitHeight = map.classList.contains( 'wp-map-embed--auto' ) ? autoHeight : fillHeight;
 
 		function refit() {
 			if ( queued ) {
@@ -113,11 +101,11 @@
 			queued = true;
 			requestAnimationFrame( function () {
 				queued = false;
-				fitHeight( map );
+				autoHeight( map );
 			} );
 		}
 
-		fitHeight( map );
+		autoHeight( map );
 		window.addEventListener( 'resize', refit );
 		window.addEventListener( 'load', refit );
 
@@ -132,7 +120,7 @@
 			var observer = new ResizeObserver( refit );
 
 			observer.observe( row );
-			if ( map.classList.contains( 'wp-map-embed--auto' ) ) { observer.observe( box ); }
+			observer.observe( box );
 			[].forEach.call( row.querySelectorAll( '.wpb_wrapper, .vc_column-inner > *' ), function ( node ) {
 				if ( ! node.contains( map ) && ! map.contains( node ) ) {
 					observer.observe( node );
@@ -148,10 +136,9 @@
 	}
 
 	function init() {
-		[].forEach.call( document.querySelectorAll( '.wp-map-embed--fill, .wp-map-embed--auto' ), function ( map ) {
-			// The edit screen's preview (its frame's page) has no block to fill.
-			var skipPreview = ! map.classList.contains( 'wp-map-embed--auto' ) && map.closest( '.wp-map-embed-preview-page' );
-			if ( ! map.closest( '.wp-map-embed-admin' ) && ! skipPreview && ! map.hasAttribute( 'data-filled' ) ) {
+		[].forEach.call( document.querySelectorAll( '.wp-map-embed--auto' ), function ( map ) {
+			// In the edit screen's preview its page is the parent (as tall as the screen).
+			if ( ! map.hasAttribute( 'data-filled' ) ) {
 				map.setAttribute( 'data-filled', '' );
 				fill( map );
 			}

@@ -33,7 +33,8 @@ class Test_Admin extends WP_Map_Embed_TestCase {
 		$this->as_role( 'editor' );
 		$html = $this->settings_box( $this->map() );
 
-		$keys = array_diff( array_keys( WP_Map_Embed_Settings::defaults() ), array() );
+		// The cover's opacity comes with its colour (one picker, rgba).
+		$keys = array_diff( array_keys( WP_Map_Embed_Settings::defaults() ), array( 'overlay_opacity' ) );
 		foreach ( $keys as $key ) {
 			$this->assertGreaterThanOrEqual( 1, substr_count( $html, 'name="wp_map_embed[' . $key . ']"' ), $key );
 		}
@@ -50,7 +51,7 @@ class Test_Admin extends WP_Map_Embed_TestCase {
 		$this->as_role( 'editor' );
 		$html = $this->settings_box( $this->map() );
 
-		$this->assertSame( array( 'map', 'size', 'shape', 'cover' ), array_keys( WP_Map_Embed_Admin::pages() ) );
+		$this->assertSame( array( 'map', 'size', 'cover', 'appearance' ), array_keys( WP_Map_Embed_Admin::pages() ) );
 		foreach ( WP_Map_Embed_Admin::pages() as $page => $meta ) {
 			// An item in the menu for each page, and the page with its fields.
 			$this->assertStringContainsString( 'class="wp-map-embed-admin__menu-item" data-page="' . $page . '" aria-controls="wp-map-embed-page-' . $page . '"', $html );
@@ -63,10 +64,10 @@ class Test_Admin extends WP_Map_Embed_TestCase {
 
 		// Each field on its page.
 		$pages = array(
-			'map'   => 'source',
-			'size'  => 'scale',
-			'shape' => 'shape_position',
-			'cover' => 'label',
+			'map'        => 'source',
+			'size'       => 'scale',
+			'appearance' => 'shape_position',
+			'cover'      => 'label',
 		);
 		foreach ( $pages as $page => $key ) {
 			$this->assertMatchesRegularExpression( '/id="wp-map-embed-page-' . $page . '"(?:(?!<\/fieldset>).)*name="wp_map_embed\[' . $key . '\]"/s', $html, $page );
@@ -75,26 +76,46 @@ class Test_Admin extends WP_Map_Embed_TestCase {
 
 	public function test_settings_box_switches() {
 		$this->as_role( 'editor' );
-		$html = $this->settings_box( $this->map( $this->settings( array( 'activate' => '1' ) ) ) );
+		$html = $this->settings_box( $this->map( $this->settings( array( 'grayscale' => '1' ) ) ) );
 
 		// Every checkbox a switch, as in WP Swiper.
-		$this->assertSame( 3, substr_count( $html, 'type="checkbox"' ) );
-		$this->assertSame( 3, substr_count( $html, '<div class="wp-map-embed-admin__switch"><label><input type="checkbox"' ) );
-		$this->assertStringContainsString( 'name="wp_map_embed[activate]" value="1" checked=\'checked\'> Cover the map until it is clicked</label>', $html );
+		$switches = array( 'scale_enabled', 'rounded', 'border', 'shadow', 'shape_enabled', 'grayscale', 'defer', 'overlay_enabled', 'icon_enabled', 'text_enabled' );
+		$this->assertSame( count( $switches ), substr_count( $html, 'type="checkbox"' ) );
+		$this->assertSame( count( $switches ), substr_count( $html, '<div class="wp-map-embed-admin__switch"><label><input type="checkbox"' ) );
+		foreach ( $switches as $key ) {
+			$this->assertStringContainsString( 'name="wp_map_embed[' . $key . ']" value="1"', $html, $key );
+		}
+		$this->assertStringContainsString( 'name="wp_map_embed[grayscale]" value="1" checked=\'checked\'> Black and white until clicked</label>', $html );
 		// Their help behind an "i" beside the label, not in it, and not under it.
-		$this->assertMatchesRegularExpression( '/Cover the map until it is clicked<\/label><span class="wp-map-embed-admin__tip"[^>]*data-tip="Visitors scroll past the map/', $html );
-		$this->assertMatchesRegularExpression( '/Load the map only after a click<\/label><span class="wp-map-embed-admin__tip"/', $html );
-		$this->assertStringNotContainsString( '<p class="description">Visitors scroll past', $html );
+		$this->assertMatchesRegularExpression( '/Load the map only after a click<\/label><span class="wp-map-embed-admin__tip"[^>]*data-tip="The page loads faster/', $html );
+		$this->assertStringNotContainsString( '<p class="description">The page loads faster', $html );
 		// What follows a switch says so (admin.js shows it while the switch is on).
-		$this->assertStringContainsString( 'data-field="grayscale" data-depends="activate"', $html );
-		$this->assertStringContainsString( 'data-field="placeholder" data-depends="defer"', $html );
+		$depends = array(
+			'placeholder'    => 'defer',
+			'overlay_color'  => 'overlay_enabled',
+			'icon'           => 'icon_enabled',
+			'icon_size'      => 'icon_enabled',
+			'icon_color'     => 'icon_enabled',
+			'label'          => 'text_enabled',
+			'scale'          => 'scale_enabled',
+			'radius'         => 'rounded',
+			'border_style'   => 'border',
+			'shadow_color'   => 'shadow',
+			'shape'          => 'shape_enabled',
+			'shape_position' => 'shape_enabled',
+		);
+		foreach ( $depends as $key => $switch ) {
+			$this->assertMatchesRegularExpression( '/data-field="' . $key . '" data-depends="' . $switch . '"/', $html, $key );
+		}
 	}
 
 	public function test_settings_box_device_switcher() {
 		$this->as_role( 'editor' );
 		$html = $this->settings_box( $this->map() );
 
-		$this->assertSame( 5, substr_count( $html, 'class="wp-map-embed-admin__devices"' ) );
+		// Height, proportions, custom proportions, scale, radius, border width,
+		// shape position and icon size.
+		$this->assertSame( 8, substr_count( $html, 'class="wp-map-embed-admin__devices"' ) );
 		// The preview's own, with names.
 		$this->assertSame( 3, substr_count( $html, 'class="wp-map-embed-preview__device-btn"' ) );
 		// Desktop shown first, the others hidden until their icon is clicked.
@@ -138,16 +159,16 @@ class Test_Admin extends WP_Map_Embed_TestCase {
 
 		$_POST[ WP_Map_Embed_Admin::NONCE . '_nonce' ] = wp_create_nonce( WP_Map_Embed_Admin::NONCE );
 		$_POST['wp_map_embed']                          = array(
-			'source'   => '<iframe src="' . self::PB . '"></iframe>',
-			'activate' => '1',
-			'height'   => '9999',
-			'icon'     => 'pin',
+			'source'          => '<iframe src="' . self::PB . '"></iframe>',
+			'overlay_enabled' => '1',
+			'height'          => '9999',
+			'icon'            => 'pin',
 		);
 		WP_Map_Embed_Admin::save( $id );
 
 		$saved = WP_Map_Embed_Settings::get( $id );
 		$this->assertSame( self::PB, $saved['source'] );
-		$this->assertTrue( $saved['activate'] );
+		$this->assertTrue( $saved['overlay_enabled'] );
 		$this->assertFalse( $saved['grayscale'] );
 		$this->assertSame( 2000, $saved['height'] );
 		$this->assertSame( 'pin', $saved['icon'] );
@@ -213,7 +234,7 @@ class Test_Admin_Preview extends WP_Map_Embed_TestCase {
 	}
 
 	public function test_frame_of_unsaved_settings() {
-		$html = WP_Map_Embed_Preview::frame_html( array( 'source' => 'Oslo', 'activate' => '1' ), 'Office' );
+		$html = WP_Map_Embed_Preview::frame_html( array( 'source' => 'Oslo' ), 'Office' );
 
 		$this->assertStringStartsWith( '<!DOCTYPE html>', ltrim( $html ) );
 		$this->assertStringContainsString( 'q=Oslo', $html );

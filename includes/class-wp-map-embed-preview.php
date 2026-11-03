@@ -210,7 +210,7 @@ class WP_Map_Embed_Preview {
 		}
 		echo '</div>';
 
-		echo '<p class="description">' . esc_html__( '“Parent block” shows with the Height: the preview has no column to fill. Click the map to try the cover.', 'wp-map-embed' ) . '</p>';
+		echo '<p class="description">' . esc_html__( 'With the Auto height the map fills the preview’s screen, which stands in for its parent block. Click the map to try the cover.', 'wp-map-embed' ) . '</p>';
 		echo '</div>';
 	}
 

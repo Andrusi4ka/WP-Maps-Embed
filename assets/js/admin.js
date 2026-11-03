@@ -86,7 +86,12 @@
 					if ( point && Math.abs( Number( point[ 1 ] ) ) <= 90 && Math.abs( Number( point[ 2 ] ) ) <= 180 ) {
 						destination = point[ 1 ] + ',' + point[ 2 ];
 					} else if ( name ) {
-						destination = name[ 1 ];
+						// The pb's text is URL-encoded ("Relevant%20AS"); set() encodes it again.
+						try {
+							destination = decodeURIComponent( name[ 1 ].replace( /\+/g, ' ' ) );
+						} catch ( e ) {
+							destination = name[ 1 ];
+						}
 					}
 				}
 			}
@@ -155,8 +160,7 @@
 		}
 
 		function dependencies() {
-			var icon     = $box.find( '[name="wp_map_embed[icon]"]:checked' ).val();
-			var mode     = $box.find( '[name="wp_map_embed[size_mode]"]:checked' ).val();
+			var mode = $box.find( '[name="wp_map_embed[size_mode]"]:checked' ).val();
 
 			setOff( 'ratio', 'ratio' !== mode );
 			var customRatio = $box.find( '[data-field="ratio"] select' ).filter( function () { return $( this ).val() === 'custom'; } ).length > 0;
@@ -167,8 +171,8 @@
 			setOff( 'overlay_color', ! checked( 'overlay_enabled' ) );
 			setOff( 'icon', ! checked( 'icon_enabled' ) );
 			setOff( 'label', ! checked( 'text_enabled' ) );
-			setOff( 'icon_color', ! checked( 'icon_enabled' ) || 'none' === icon );
-			setOff( 'icon_size', ! checked( 'icon_enabled' ) || 'none' === icon );
+			setOff( 'icon_color', ! checked( 'icon_enabled' ) );
+			setOff( 'icon_size', ! checked( 'icon_enabled' ) );
 			setOff( 'zoom', ! isAddress() );
 
 			// SVG outlines use a stroke and drop-shadow, as in WP Swiper.
@@ -291,13 +295,13 @@
 
 		var COLOR_PICK = '.wp-map-embed-color-pick';
 		var colorI18n = $.extend( {}, l10n.colorPicker || {} );
-		// The palette's colors and names (TinyMCE's map: "RRGGBB", name, …).
+		// The palette's colors and their names (WP_Map_Embed_Palette::colors()).
 		var colorSwatches = [];
 		var colorNames = [];
-		( $.isArray( l10n.textColors ) ? l10n.textColors : [] ).forEach( function ( item, i, map ) {
-			if ( i % 2 === 0 && /^[0-9a-f]{6}$/i.test( item ) ) {
-				colorSwatches.push( '#' + item.toLowerCase() );
-				colorNames.push( String( map[ i + 1 ] || '' ) );
+		( Array.isArray( l10n.swatches ) ? l10n.swatches : [] ).forEach( function ( item ) {
+			if ( item && /^#[0-9a-f]{6}$/i.test( item.color ) ) {
+				colorSwatches.push( item.color.toLowerCase() );
+				colorNames.push( String( item.name || '' ) );
 			}
 		} );
 
