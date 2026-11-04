@@ -245,6 +245,9 @@ class Test_Render extends WP_Map_Embed_TestCase {
 		$style = $this->style( $this->render( array( 'overlay_enabled' => '1', 'overlay_color' => 'rgba(255,0,0,0.5)', 'icon_color' => '#00ff00' ) ) );
 		$this->assertStringContainsString( '--wme-cover:rgba(255,0,0,0.5);', $style );
 		$this->assertStringContainsString( '--wme-icon-color:#00ff00;', $style );
+		// An unchecked array (another caller): no CSS of its own gets in.
+		$raw = array( 'icon_color' => 'red;background:url(x)' ) + $this->settings();
+		$this->assertStringNotContainsString( 'background', $this->style( WP_Map_Embed_Render::markup( $raw, 'Test map' ) ) );
 		// Opaque, it sends hex.
 		$this->assertStringContainsString( '--wme-cover:rgba(255,0,0,1);', $this->style( $this->render( array( 'overlay_enabled' => '1', 'overlay_color' => '#ff0000' ) ) ) );
 		// No colour of its own: the theme's (frontend.css).

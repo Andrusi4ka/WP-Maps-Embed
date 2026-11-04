@@ -443,6 +443,19 @@ class WP_Map_Embed_Settings {
 	}
 
 	/**
+	 * Whether a host is Google's own: google.com or a country one (google.no,
+	 * google.co.uk, google.com.ua), bare or with www. / maps. in front.
+	 * Nothing else: no other subdomains, no other three-letter endings.
+	 * The same rule is in admin.js (routeUrl()).
+	 *
+	 * @param string $host Host.
+	 * @return bool
+	 */
+	public static function is_google_host( $host ) {
+		return (bool) preg_match( '/^(?:www\.|maps\.)?google\.(?:com|[a-z]{2}|(?:com|co)\.[a-z]{2})$/i', (string) $host );
+	}
+
+	/**
 	 * Whether a link is Google's embedded map (what the frame may show).
 	 *
 	 * @param string $url Link.
@@ -455,7 +468,7 @@ class WP_Map_Embed_Settings {
 		}
 		$path  = isset( $parts['path'] ) ? $parts['path'] : '';
 		$query = isset( $parts['query'] ) ? $parts['query'] : '';
-		if ( ! preg_match( '/(^|\.)google\.[a-z]{2,3}(\.[a-z]{2})?$/i', $parts['host'] ) || 0 !== strpos( $path, '/maps' ) ) {
+		if ( ! self::is_google_host( $parts['host'] ) || 0 !== strpos( $path, '/maps' ) ) {
 			return false;
 		}
 		// "Share > Embed a map" (/maps/embed?pb=...) or an address one (output=embed).

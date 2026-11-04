@@ -181,11 +181,15 @@ class WP_Map_Embed_Render {
 			return null;
 		}
 
-		$id    = 'wp-map-embed-shape-' . ( ++self::$shapes );
 		$paths = '';
 		foreach ( $frame['shapes'] as $shape ) {
 			$paths .= sprintf( '<path d="%1$s" clip-rule="%2$s"/>', esc_attr( $shape['d'] ), esc_attr( $shape['rule'] ) );
 		}
+		// Named after the shapes, then counted: maps drawn in separate requests
+		// and put on one page (WPBakery's front-end editor, cached fragments)
+		// would otherwise both be "-1", the second cut by the first's shapes.
+		// Same name, same shapes: then either clip path draws them alike.
+		$id = 'wp-map-embed-shape-' . substr( md5( $paths ), 0, 8 ) . '-' . ( ++self::$shapes );
 		$border = '';
 		if ( ! empty( $settings['border'] ) ) {
 			$strokes = '';
@@ -327,8 +331,10 @@ class WP_Map_Embed_Render {
 				}
 			}
 		}
-		if ( $settings['icon_color'] ) {
-			$vars['--wme-icon-color'] = $settings['icon_color'];
+		// Checked here too, as the other colours: markup() takes any caller's array.
+		$icon_color = WP_Map_Embed_Settings::sanitize_color( $settings['icon_color'] );
+		if ( '' !== $icon_color ) {
+			$vars['--wme-icon-color'] = $icon_color;
 		}
 		if ( $defer && $settings['placeholder'] ) {
 			$image = wp_get_attachment_image_url( (int) $settings['placeholder'], 'large' );

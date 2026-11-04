@@ -120,12 +120,24 @@ class Test_Svg_Shape extends WP_Map_Embed_TestCase {
 		$this->assertStringContainsString( '--wme-shape-x:0;--wme-shape-y:1;', $this->style( $html ) );
 
 		// One clip path of both shapes, in numbers of the stencil's box.
-		$this->assertSame( 1, preg_match( '/<clipPath id="(wp-map-embed-shape-\d+)" clipPathUnits="objectBoundingBox">(.*?)<\/clipPath>/', $html, $clip ) );
+		$this->assertSame( 1, preg_match( '/<clipPath id="(wp-map-embed-shape-[0-9a-f]{8}-\d+)" clipPathUnits="objectBoundingBox">(.*?)<\/clipPath>/', $html, $clip ) );
 		$this->assertSame( 2, substr_count( $clip[2], '<path ' ) );
 		$this->assertStringContainsString( '<path d="M 0 0 L 0.66667 0 L 0.66667 1 L 0 1 Z" clip-rule="nonzero"/>', $clip[2] );
 
 		// The frame and the cover in the stencil, cut by that clip path.
 		$this->assertMatchesRegularExpression( '/<div class="wp-map-embed__shape" style="-webkit-clip-path:url\(#' . $clip[1] . '\);clip-path:url\(#' . $clip[1] . '\)"><iframe [^>]*><\/iframe><button [^>]*class="wp-map-embed__cover"/', $html );
+	}
+
+	public function test_clip_ids_differ_by_shape() {
+		$id = function ( $shape ) {
+			$html = $this->render( array( 'shape_enabled' => '1', 'shape' => $shape ) );
+			preg_match( '/<clipPath id="wp-map-embed-shape-([0-9a-f]{8})-\d+"/', $html, $match );
+			return $match[1];
+		};
+		$other = WP_Map_Embed_Svg_Shape::sanitize( $this->svg( '<circle cx="5" cy="5" r="5"/>' ) );
+		// Another request starts counting from 1 again: the name still tells them apart.
+		$this->assertNotSame( $id( $this->two() ), $id( $other ) );
+		$this->assertSame( $id( $this->two() ), $id( $this->two() ) );
 	}
 
 	public function test_long_names_in_other_letters_are_cut_whole() {
@@ -168,7 +180,7 @@ class Test_Svg_Shape extends WP_Map_Embed_TestCase {
 	 */
 
 	public function test_the_field_and_saving() {
-		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
 		$id = $this->map();
 
 		ob_start();

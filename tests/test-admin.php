@@ -30,7 +30,7 @@ class Test_Admin extends WP_Map_Embed_TestCase {
 	}
 
 	public function test_settings_box_has_every_field_once() {
-		$this->as_role( 'editor' );
+		$this->as_role( 'administrator' );
 		$html = $this->settings_box( $this->map() );
 
 		// The cover's opacity comes with its colour (one picker, rgba).
@@ -48,7 +48,7 @@ class Test_Admin extends WP_Map_Embed_TestCase {
 	}
 
 	public function test_settings_box_menu_and_pages() {
-		$this->as_role( 'editor' );
+		$this->as_role( 'administrator' );
 		$html = $this->settings_box( $this->map() );
 
 		$this->assertSame( array( 'map', 'size', 'cover', 'appearance' ), array_keys( WP_Map_Embed_Admin::pages() ) );
@@ -75,7 +75,7 @@ class Test_Admin extends WP_Map_Embed_TestCase {
 	}
 
 	public function test_settings_box_switches() {
-		$this->as_role( 'editor' );
+		$this->as_role( 'administrator' );
 		$html = $this->settings_box( $this->map( $this->settings( array( 'grayscale' => '1' ) ) ) );
 
 		// Every checkbox a switch, as in WP Swiper.
@@ -110,7 +110,7 @@ class Test_Admin extends WP_Map_Embed_TestCase {
 	}
 
 	public function test_settings_box_device_switcher() {
-		$this->as_role( 'editor' );
+		$this->as_role( 'administrator' );
 		$html = $this->settings_box( $this->map() );
 
 		// Height, proportions, custom proportions, scale, radius, border width,
@@ -125,7 +125,7 @@ class Test_Admin extends WP_Map_Embed_TestCase {
 	}
 
 	public function test_settings_box_shows_the_saved_maps_error() {
-		$this->as_role( 'editor' );
+		$this->as_role( 'administrator' );
 		$ok = $this->settings_box( $this->map( $this->settings() ) );
 		$this->assertStringContainsString( '<p class="wp-map-embed-admin__error" hidden>', $ok );
 
@@ -134,7 +134,7 @@ class Test_Admin extends WP_Map_Embed_TestCase {
 	}
 
 	public function test_settings_box_has_the_preview_in_its_devices() {
-		$this->as_role( 'editor' );
+		$this->as_role( 'administrator' );
 		$id   = $this->map();
 		$html = $this->settings_box( $id );
 
@@ -154,7 +154,7 @@ class Test_Admin extends WP_Map_Embed_TestCase {
 	}
 
 	public function test_save_sanitizes_the_settings() {
-		$this->as_role( 'editor' );
+		$this->as_role( 'administrator' );
 		$id = $this->map();
 
 		$_POST[ WP_Map_Embed_Admin::NONCE . '_nonce' ] = wp_create_nonce( WP_Map_Embed_Admin::NONCE );
@@ -178,15 +178,36 @@ class Test_Admin extends WP_Map_Embed_TestCase {
 		$id = $this->map( array( 'source' => 'Oslo' ) );
 		$_POST['wp_map_embed'] = array( 'source' => 'Bergen' );
 
-		$this->as_role( 'editor' );
+		$this->as_role( 'administrator' );
 		$_POST[ WP_Map_Embed_Admin::NONCE . '_nonce' ] = 'wrong';
 		WP_Map_Embed_Admin::save( $id );
 		$this->assertSame( 'Oslo', WP_Map_Embed_Settings::get( $id )['source'] );
 
-		$this->as_role( 'subscriber' );
-		$_POST[ WP_Map_Embed_Admin::NONCE . '_nonce' ] = wp_create_nonce( WP_Map_Embed_Admin::NONCE );
-		WP_Map_Embed_Admin::save( $id );
-		$this->assertSame( 'Oslo', WP_Map_Embed_Settings::get( $id )['source'] );
+		// Maps are for administrators only: not an editor, nor a subscriber.
+		foreach ( array( 'editor', 'subscriber' ) as $role ) {
+			$this->as_role( $role );
+			$_POST[ WP_Map_Embed_Admin::NONCE . '_nonce' ] = wp_create_nonce( WP_Map_Embed_Admin::NONCE );
+			WP_Map_Embed_Admin::save( $id );
+			$this->assertSame( 'Oslo', WP_Map_Embed_Settings::get( $id )['source'], $role );
+		}
+	}
+
+	public function test_maps_are_for_administrators_only() {
+		$id = $this->map();
+
+		$this->as_role( 'administrator' );
+		$this->assertTrue( current_user_can( 'edit_post', $id ) );
+		$this->assertTrue( current_user_can( get_post_type_object( WP_Map_Embed_Settings::POST_TYPE )->cap->create_posts ) );
+
+		foreach ( array( 'editor', 'author', 'contributor' ) as $role ) {
+			$this->as_role( $role );
+			$type = get_post_type_object( WP_Map_Embed_Settings::POST_TYPE );
+			// No menu (it asks for edit_posts), no new map, no editing or deleting.
+			$this->assertFalse( current_user_can( $type->cap->edit_posts ), $role );
+			$this->assertFalse( current_user_can( $type->cap->create_posts ), $role );
+			$this->assertFalse( current_user_can( 'edit_post', $id ), $role );
+			$this->assertFalse( current_user_can( 'delete_post', $id ), $role );
+		}
 	}
 
 	public function test_shortcode_box_and_list_column() {
@@ -261,7 +282,7 @@ class Test_Admin_Preview extends WP_Map_Embed_TestCase {
 			return wp_create_nonce( WP_Map_Embed_Preview::ACTION . '_' . $id );
 		};
 
-		wp_set_current_user( self::factory()->user->create( array( 'role' => 'editor' ) ) );
+		wp_set_current_user( self::factory()->user->create( array( 'role' => 'administrator' ) ) );
 		$this->assertTrue( WP_Map_Embed_Preview::allowed( $id, $nonce() ) );
 		$this->assertFalse( WP_Map_Embed_Preview::allowed( $id, 'wrong' ) );
 		// Another post type, no post.
@@ -269,8 +290,10 @@ class Test_Admin_Preview extends WP_Map_Embed_TestCase {
 		$this->assertFalse( WP_Map_Embed_Preview::allowed( $page, wp_create_nonce( WP_Map_Embed_Preview::ACTION . '_' . $page ) ) );
 		$this->assertFalse( WP_Map_Embed_Preview::allowed( 0, $nonce() ) );
 
-		wp_set_current_user( self::factory()->user->create( array( 'role' => 'subscriber' ) ) );
-		$this->assertFalse( WP_Map_Embed_Preview::allowed( $id, $nonce() ) );
+		foreach ( array( 'editor', 'subscriber' ) as $role ) {
+			wp_set_current_user( self::factory()->user->create( array( 'role' => $role ) ) );
+			$this->assertFalse( WP_Map_Embed_Preview::allowed( $id, $nonce() ), $role );
+		}
 	}
 
 	public function test_devices_and_their_screens() {

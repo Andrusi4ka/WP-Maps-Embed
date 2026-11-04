@@ -4,7 +4,7 @@ Tags: google maps, map, embed, shortcode, wpbakery
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.1.0
+Stable tag: 1.1.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -43,6 +43,12 @@ The embed one: in Google Maps open the place, then Share > Embed a map > Copy HT
 Deleting it under Plugins removes all maps with their settings. Deactivating or updating it keeps them.
 
 == Changelog ==
+
+= 1.1.1 =
+* Maps are managed by administrators only: other roles no longer see WP Maps Embed in the menu and cannot create, edit or delete maps (inserting existing maps into pages is unchanged). The filter "wp_map_embed_capability" lets other roles in.
+* Only Google's own domains (google.com and its country domains, bare or with www. / maps.) are accepted as embed links.
+* SVG stencils: two maps rendered separately and shown on one page (WPBakery's front-end editor, cached fragments) no longer cut each other with the wrong shape.
+* The icon colour is checked again when the map is drawn, as the other colours are.
 
 = 1.1.0 =
 * Height units per device: px, %, vh, vw, dvh, and Auto, which fills the parent block (it replaces the "Fill the parent block" size mode; maps using it switch to Auto by themselves).

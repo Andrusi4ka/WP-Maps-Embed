@@ -66,7 +66,7 @@
 			if ( /^https?:\/\//i.test( source ) ) {
 				var url;
 				try { url = new URL( source ); } catch ( e ) { return ''; }
-				if ( url.protocol !== 'https:' || ! /(^|\.)google\.[a-z]{2,3}(\.[a-z]{2})?$/i.test( url.hostname ) ||
+				if ( url.protocol !== 'https:' || ! /^(?:www\.|maps\.)?google\.(?:com|[a-z]{2}|(?:com|co)\.[a-z]{2})$/i.test( url.hostname ) ||
 					url.pathname.indexOf( '/maps' ) !== 0 ||
 					( url.pathname.indexOf( '/maps/embed' ) !== 0 && url.searchParams.get( 'output' ) !== 'embed' ) ) {
 					return '';

@@ -46,6 +46,11 @@ class Test_Settings extends WP_Map_Embed_TestCase {
 			'plain http'         => array( 'http://www.google.com/maps/embed?pb=1', false ),
 			'another site'       => array( 'https://evil.example/maps/embed?pb=1', false ),
 			'look-alike host'    => array( 'https://evilgoogle.com/maps/embed?pb=1', false ),
+			'country google'     => array( 'https://www.google.co.uk/maps/embed?pb=1', true ),
+			'country google com' => array( 'https://maps.google.com.ua/maps?q=Kyiv&output=embed', true ),
+			'google, other end'  => array( 'https://www.google.xyz/maps/embed?pb=1', false ),
+			'google subdomain'   => array( 'https://evil.google.com.ua/maps/embed?pb=1', false ),
+			'google as a prefix' => array( 'https://google.com.evil.example/maps/embed?pb=1', false ),
 			'google, not a map'  => array( 'https://www.google.com/search?output=embed', false ),
 		);
 	}

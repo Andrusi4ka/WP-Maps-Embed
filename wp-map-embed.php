@@ -3,7 +3,7 @@
  * Plugin Name:       WP Maps Embed
  * Plugin URI:        https://github.com/Andrusi4ka/WP-Maps-Embed
  * Description:       Google Maps on a page without copying iframe code: create a map from an address or Google's embed code, choose its height and the "click to activate" cover, and insert it with a shortcode or the WPBakery element.
- * Version:           1.1.0
+ * Version:           1.1.1
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            Andrii Boiko
@@ -24,7 +24,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'WP_MAP_EMBED_VERSION', '1.1.0' );
+define( 'WP_MAP_EMBED_VERSION', '1.1.1' );
 define( 'WP_MAP_EMBED_REPOSITORY', 'https://github.com/Andrusi4ka/WP-Maps-Embed/' );
 define( 'WP_MAP_EMBED_FILE', __FILE__ );
 define( 'WP_MAP_EMBED_DIR', plugin_dir_path( __FILE__ ) );
@@ -49,6 +49,29 @@ require_once WP_MAP_EMBED_DIR . 'includes/class-wp-map-embed-palette.php';
 require_once WP_MAP_EMBED_DIR . 'includes/class-wp-map-embed-admin.php';
 require_once WP_MAP_EMBED_DIR . 'includes/class-wp-map-embed-preview.php';
 require_once WP_MAP_EMBED_DIR . 'includes/class-wp-map-embed-wpbakery.php';
+
+/**
+ * The capability needed to create, edit and delete maps: administrators
+ * only by default. Filter "wp_map_embed_capability" to let others in
+ * (for instance 'edit_others_posts' for editors).
+ *
+ * @return string
+ */
+function wp_map_embed_capability() {
+	return (string) apply_filters( 'wp_map_embed_capability', 'manage_options' );
+}
+
+/**
+ * The map post type's capabilities, each one wp_map_embed_capability().
+ * Reading stays 'read' (a published map is shown on pages to everyone).
+ *
+ * @return array
+ */
+function wp_map_embed_capabilities() {
+	$capability = wp_map_embed_capability();
+	$keys       = array( 'edit_posts', 'edit_others_posts', 'edit_private_posts', 'edit_published_posts', 'publish_posts', 'read_private_posts', 'delete_posts', 'delete_others_posts', 'delete_private_posts', 'delete_published_posts', 'create_posts' );
+	return array_fill_keys( $keys, $capability );
+}
 
 /**
  * Register the map post type.
@@ -78,6 +101,10 @@ function wp_map_embed_register_post_type() {
 			'menu_icon'       => WP_MAP_EMBED_URL . 'assets/images/menu-icon.png',
 			'supports'        => array( 'title' ),
 			'capability_type' => 'post',
+			// Maps are managed by administrators only (wp_map_embed_capability()):
+			// the menu, the edit screen, saving and the preview all ask for it.
+			'capabilities'    => wp_map_embed_capabilities(),
+			'map_meta_cap'    => true,
 			'rewrite'         => false,
 		)
 	);
